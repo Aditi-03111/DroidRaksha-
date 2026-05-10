@@ -119,6 +119,62 @@ DroidRaksha is built using a modern, scalable, and distributed technology stack,
 - **CI/CD & Monitoring:** Automated deployment via GitHub Actions with Sentry and Grafana for error tracking and metrics monitoring.
 - **Sharing:** Threat intelligence sharing via STIX 2.1 / TAXII exports and a rate-limited Bulk REST API.
 
+## 🏁 Demo Round vs Final Round (Diff)
+
+Here is a detailed breakdown of what we are building for the Hackathon Demo (Round 1) versus the Full Platform Vision (Round 2):
+
+| Category | Technology | Round 1 (Demo Prototype) | Round 2 (Full Platform) | Change |
+| :--- | :--- | :--- | :--- | :--- |
+| **Frontend** | | | | |
+| Framework | Next.js 14 | App Router + TypeScript | Same + more pages | Keep |
+| Styling | Tailwind + shadcn/ui | Full design system | Same | Keep |
+| Charts | D3.js | Not included | Network graph + campaign map | New |
+| Real-time | WebSocket | Polling every 2s (simple) | True WebSocket live progress | Upgrade |
+| Mobile app | React Native | Not built | Full Android app | New |
+| Deploy | Vercel | Free tier | Same (or pro if needed) | Keep |
+| **Backend** | | | | |
+| Framework | FastAPI | Sync (no queue) | Fully async + Celery workers | Upgrade |
+| Job queue | Celery + Redis | Not used — runs inline | Full background job queue | New |
+| Cache | Redis | Not used | Caching + WebSocket state | New |
+| Gateway | Nginx | Not used | Reverse proxy + rate limiting | New |
+| Deploy | Railway → AWS EC2 | Railway free tier | AWS EC2 t3.large | Upgrade |
+| **Analysis Engines** | | | | |
+| Static | Androguard + JADX | Full — androguard + YARA | Same + APKTool + deeper DEX | Upgrade |
+| Dynamic | MobSF + Docker | Not built | Full Docker sandbox | New |
+| Runtime hooks | Frida + strace | Not built | API call + file I/O tracing | New |
+| Network capture | tcpdump + mitmproxy | Not built | Full PCAP analysis | New |
+| YARA rules | yara-python | 12 rules (basic) | 50+ rules (comprehensive) | Upgrade |
+| **C2 Detection** | | | | |
+| String-based | Regex + IOC DB | Hardcoded IPs + domains | Same + live beacon detection | Upgrade |
+| Beacon detect | Custom algorithm | Not built | Timing variance analysis | New |
+| DGA detect | Entropy analysis | Not built | Shannon entropy + n-gram | New |
+| TLS fingerprint| JA3 | Not built | JA3 hash matching | New |
+| **Threat Intelligence** | | | | |
+| VirusTotal | VT API v3 | Hash lookup only | Hash + URL + IP lookup | Upgrade |
+| AbuseIPDB | AbuseIPDB API | Basic IP check | Same | Keep |
+| AlienVault OTX | OTX API | Not used | Full IOC enrichment | New |
+| India IOC DB | Custom | Hardcoded list (~50 entries) | Full DB + admin update API | Upgrade |
+| MITRE ATT&CK | Custom mapper | Basic mapping (10 techniques)| Full matrix mapping | Upgrade |
+| **AI Layer** | | | | |
+| Narrative | Claude API | Single threat summary | Same + confidence scoring | Upgrade |
+| Classification | ML model | Not built | Malware family classifier | New |
+| **Database** | | | | |
+| Primary DB | PostgreSQL | SQLite (local/demo) | AWS RDS (production) | Upgrade |
+| Document DB | MongoDB | Not used (JSONB instead) | MongoDB Atlas — raw results | New |
+| Cache / Queue | Redis | Not used | Upstash / AWS ElastiCache | New |
+| Search | Elasticsearch | Not used | IOC search + clustering | New |
+| **Storage** | | | | |
+| File storage | S3 / MinIO | Local /tmp folder | AWS S3 (APK + PCAP + PDFs) | Upgrade |
+| **Infrastructure** | | | | |
+| Containers | Docker | Not used | Docker Compose → Kubernetes | New |
+| CI/CD | GitHub Actions | Not set up | Auto deploy on push | New |
+| Monitoring | Sentry / Grafana | Not set up | Error tracking + metrics | New |
+| **Exports & Sharing**| | | | |
+| PDF report | WeasyPrint | Basic PDF | Branded forensic PDF | Upgrade |
+| Threat sharing | STIX 2.1 | Not built | STIX/TAXII export | New |
+| Bulk API | REST API | Not built | API key + rate limiting | New |
+| Public report | Next.js SSR | Basic shareable URL | OG tags + WhatsApp preview | Upgrade |
+
 ## 🗺️ Roadmap & Task Status
 
 ### Phase 1: Project Scaffold
