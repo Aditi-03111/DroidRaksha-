@@ -1,0 +1,122 @@
+"""
+SQLite database setup and CRUD operations using SQLAlchemy async.
+"""
+from __future__ import annotations
+import json
+import os
+from datetime import datetime, timezone
+from typing import Optional
+from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
+from sqlalchemy import String, Integer, Text, DateTime, select
+from loguru import logger
+
+DATABASE_URL = os.getenv("DATABASE_URL", "sqlite+aiosqlite:///./droidraksha.db")
+
+engine = create_async_engine(DATABASE_URL, echo=False)
+async_session_factory = async_sessionmaker(engine, expire_on_commit=False)
+
+
+class Base(DeclarativeBase):
+    pass
+
+
+class AnalysisRecord(Base):
+    __tablename__ = "analyses"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    filename: Mapped[str] = mapped_column(String(255))
+    sha256: Mapped[str] = mapped_column(String(64), index=True)
+    file_size: Mapped[int] = mapped_column(Integer)
+    risk_score: Mapped[int] = mapped_column(Integer)
+    risk_level: Mapped[str] = mapped_column(String(20))
+    package_name: Mapped[str] = mapped_column(String(255), default="unknown")
+    result_json: Mapped[str] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc)
+    )
+
+
+async def init_db() -> None:
+    """Create tables if they don't exist."""
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+    logger.info("Database initialized")
+
+
+async def save_analysis(result: dict) -> None:
+    """Persist an analysis result to the database."""
+    async with async_session_factory() as session:
+        record = AnalysisRecord(
+            id=result["id"],
+            filename=result.get("filename", "unknown.apk"),
+            sha256=result["hashes"]["sha256"],
+            file_size=result["hashes"]["file_size"],
+            risk_score=result["risk"]["score"],
+            risk_level=result["risk"]["risk_level"],
+            package_name=result.get("manifest", {}).get("package_name", "unknown"),
+            result_json=json.dumps(result),
+        )
+        session.add(record)
+        await session.commit()
+        logger.info(f"Saved analysis {result['id']} to DB")
+
+
+async def get_analysis(analysis_id: str) -> Optional[dict]:
+    """Retrieve an analysis result by ID."""
+    async with async_session_factory() as session:
+        stmt = select(AnalysisRecord).where(AnalysisRecord.id == analysis_id)
+        row = (await session.execute(stmt)).scalar_one_or_none()
+        if row:
+            return json.loads(row.result_json)
+        return None
+
+
+async def get_analysis_by_hash(sha256: str) -> Optional[dict]:
+    """Retrieve analysis by APK SHA256 (cache lookup)."""
+    async with async_session_factory() as session:
+        stmt = select(AnalysisRecord).where(AnalysisRecord.sha256 == sha256).order_by(
+            AnalysisRecord.created_at.desc()
+        )
+        row = (await session.execute(stmt)).scalar_one_or_none()
+        if row:
+            return json.loads(row.result_json)
+        return None
+
+
+async def get_stats() -> dict:
+    """Return dashboard statistics."""
+    async with async_session_factory() as session:
+        all_records = (await session.execute(select(AnalysisRecord))).scalars().all()
+
+        counts = {"CRITICAL": 0, "HIGH": 0, "MEDIUM": 0, "LOW": 0, "SAFE": 0}
+        for r in all_records:
+            counts[r.risk_level] = counts.get(r.risk_level, 0) + 1
+
+        recent = sorted(all_records, key=lambda r: r.created_at, reverse=True)[:10]
+        recent_list = [
+            {
+                "id": r.id,
+                "filename": r.filename,
+                "package_name": r.package_name,
+                "risk_score": r.risk_score,
+                "risk_level": r.risk_level,
+                "created_at": r.created_at.isoformat(),
+            }
+            for r in recent
+        ]
+
+        return {
+            "total_analyzed": len(all_records),
+            "threats_detected": sum(
+                1 for r in all_records if r.risk_level in ("CRITICAL", "HIGH")
+            ),
+            "india_threats": counts.get("CRITICAL", 0),
+            "critical_count": counts.get("CRITICAL", 0),
+            "high_count": counts.get("HIGH", 0),
+            "medium_count": counts.get("MEDIUM", 0),
+            "low_count": counts.get("LOW", 0),
+            "safe_count": counts.get("SAFE", 0),
+            "recent_analyses": recent_list,
+        }
