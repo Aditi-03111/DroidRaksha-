@@ -6,6 +6,67 @@ DroidRaksha is an advanced, high-performance static analysis platform designed t
 
 ## 🏗️ Architecture
 
+```mermaid
+graph TD
+    subgraph Frontend ["Frontend (Next.js 14)"]
+        UI[User Interface]
+        Dashboard[Results Dashboard]
+        Upload[APK Upload]
+    end
+
+    subgraph Backend ["Backend (FastAPI)"]
+        API[API Router]
+        Orchestrator[Static Analyzer Orchestrator]
+        
+        subgraph Engines ["Analysis Engines"]
+            Manifest[Manifest Parser]
+            Strings[String Extractor]
+            Cert[Cert Analyzer]
+            Yara[YARA Scanner]
+            Obfuscation[Obfuscation Detector]
+        end
+        
+        subgraph Intel ["Threat Intel & AI"]
+            IndiaIOC[India IOC Engine]
+            VT[VirusTotal API]
+            AbuseIPDB[AbuseIPDB API]
+            Claude[Claude AI Narrative]
+        end
+        
+        Scorer[Risk Scorer]
+    end
+
+    subgraph Database ["Data Layer"]
+        DB[(SQLite)]
+    end
+
+    UI --> |Uploads APK| Upload
+    Upload --> |POST /upload| API
+    UI --> |Views Report| Dashboard
+    Dashboard --> |GET /analysis| API
+    
+    API --> Orchestrator
+    Orchestrator --> Engines
+    Orchestrator --> Intel
+    Engines --> Scorer
+    Intel --> Scorer
+    Scorer --> API
+    
+    API --> |Save/Retrieve| DB
+    
+    classDef frontend fill:#1e40af,stroke:#fff,stroke-width:2px,color:#fff;
+    classDef backend fill:#047857,stroke:#fff,stroke-width:2px,color:#fff;
+    classDef engines fill:#b45309,stroke:#fff,stroke-width:2px,color:#fff;
+    classDef intel fill:#6d28d9,stroke:#fff,stroke-width:2px,color:#fff;
+    classDef db fill:#334155,stroke:#fff,stroke-width:2px,color:#fff;
+
+    class UI,Dashboard,Upload frontend;
+    class API,Orchestrator,Scorer backend;
+    class Manifest,Strings,Cert,Yara,Obfuscation engines;
+    class IndiaIOC,VT,AbuseIPDB,Claude intel;
+    class DB db;
+```
+
 DroidRaksha employs a two-tier architecture optimized for rapid static analysis and detailed reporting:
 
 1. **Frontend (Next.js 14):** A professional, responsive, dark-themed dashboard that allows users to upload APKs, view real-time analysis progress, and explore detailed threat reports. It visualizes risk scores, permission analysis, extracted strings, certificate validation, and AI-generated threat narratives.
