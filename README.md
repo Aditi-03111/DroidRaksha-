@@ -83,6 +83,67 @@ graph TD
     class RDS,Mongo,Elastic,S3 data;
 ```
 
+## 📁 Folder Structure
+
+```text
+DroidRaksha/
+├── backend/
+│   ├── ai/
+│   │   └── narrative.py
+│   ├── db/
+│   │   └── database.py
+│   ├── engines/
+│   │   ├── cert_analyzer.py
+│   │   ├── manifest_parser.py
+│   │   ├── obfuscation.py
+│   │   ├── static_analyzer.py
+│   │   ├── string_extractor.py
+│   │   └── yara_scanner.py
+│   ├── intel/
+│   │   ├── abuseipdb.py
+│   │   ├── india_ioc.py
+│   │   └── virustotal.py
+│   ├── models/
+│   │   └── schemas.py
+│   ├── routes/
+│   │   ├── analysis.py
+│   │   ├── report.py
+│   │   ├── stats.py
+│   │   └── upload.py
+│   ├── main.py
+│   └── scoring/
+│       └── risk_scorer.py
+├── frontend/
+│   ├── app/
+│   │   ├── results/
+│   │   │   └── [id]/
+│   │   │       └── page.tsx
+│   │   ├── globals.css
+│   │   ├── layout.tsx
+│   │   └── page.tsx
+│   ├── components/
+│   │   ├── ui/
+│   │   ├── AIExplanation.tsx
+│   │   ├── AnalysisLoader.tsx
+│   │   ├── CertificateCard.tsx
+│   │   ├── DropZone.tsx
+│   │   ├── MitreTable.tsx
+│   │   ├── PermissionTable.tsx
+│   │   ├── RiskScoreCard.tsx
+│   │   └── StringsTable.tsx
+│   ├── lib/
+│   │   ├── api.ts
+│   │   ├── types.ts
+│   │   └── utils.ts
+│   ├── package.json
+│   └── tsconfig.json
+├── rules/
+│   ├── india_patterns.yar
+│   └── malware.yar
+├── README.md
+└── requirements.txt
+```
+
 ## 🛠️ Tech Stack & Technical Decisions (Round 2)
 
 DroidRaksha is built using a modern, scalable, and distributed technology stack, designed to handle intensive static and dynamic analysis workloads securely.
