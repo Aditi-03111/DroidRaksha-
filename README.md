@@ -217,24 +217,24 @@ Here is a detailed breakdown of what we are building for the Hackathon Demo (Rou
 - [x] Install tailwind and basic configuration
 - [x] Install shadcn/ui defaults
 - [x] Add basic shadcn components (badge, card, progress, table, tabs)
-- [ ] `frontend/app/layout.tsx`
-- [ ] `frontend/lib/types.ts`
-- [ ] `frontend/lib/api.ts`
+- [x] `frontend/app/layout.tsx`
+- [x] `frontend/lib/types.ts`
+- [x] `frontend/lib/api.ts`
 
 ### Phase 7: Frontend — Components
-- [ ] `frontend/components/DropZone.tsx`
-- [ ] `frontend/components/AnalysisLoader.tsx`
-- [ ] `frontend/components/RiskScoreCard.tsx`
-- [ ] `frontend/components/AIExplanation.tsx`
-- [ ] `frontend/components/PermissionTable.tsx`
-- [ ] `frontend/components/StringsTable.tsx`
-- [ ] `frontend/components/CertificateCard.tsx`
-- [ ] `frontend/components/MitreTable.tsx`
+- [x] `frontend/components/DropZone.tsx`
+- [x] `frontend/components/AnalysisLoader.tsx`
+- [x] `frontend/components/RiskScoreCard.tsx`
+- [x] `frontend/components/AIExplanation.tsx`
+- [x] `frontend/components/PermissionTable.tsx`
+- [x] `frontend/components/StringsTable.tsx`
+- [x] `frontend/components/CertificateCard.tsx`
+- [x] `frontend/components/MitreTable.tsx`
 - [ ] `frontend/components/ExportButton.tsx`
 
 ### Phase 8: Frontend — Pages
-- [ ] `frontend/app/page.tsx` (landing + upload)
-- [ ] `frontend/app/results/[id]/page.tsx`
+- [x] `frontend/app/page.tsx` (landing + upload)
+- [x] `frontend/app/results/[id]/page.tsx`
 - [ ] `frontend/app/report/[hash]/page.tsx` (SSR)
 
 ### Phase 9: Verification & Launch
@@ -242,3 +242,4 @@ Here is a detailed breakdown of what we are building for the Hackathon Demo (Rou
 - [ ] Frontend startup test
 - [ ] End-to-end upload test
 - [ ] Final UI Polish
+

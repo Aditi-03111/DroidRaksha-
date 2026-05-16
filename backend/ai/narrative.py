@@ -72,6 +72,23 @@ def get_mitre_tactics(manifest: dict, obfuscation: dict, yara: dict) -> list[dic
     return tactics[:10]
 
 
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
+GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
+
+
+def _parse_ai_response(full_text: str) -> tuple[str, list[str]]:
+    """Parse AI response into narrative and recommendations."""
+    parts = full_text.split("RECOMMENDATIONS:")
+    narrative = parts[0].strip()
+    recommendations = []
+    if len(parts) > 1:
+        for line in parts[1].strip().split("\n"):
+            line = line.strip().lstrip("•").strip()
+            if line:
+                recommendations.append(line)
+    return narrative, recommendations[:5]
+
+
 async def generate_narrative(
     manifest: dict,
     risk: dict,
@@ -88,13 +105,7 @@ async def generate_narrative(
     categories = risk.get("threat_categories", [])
     yara_rules = [h.get("rule", "") for h in yara.get("matches", [])]
 
-    if ANTHROPIC_API_KEY:
-        try:
-            import anthropic
-
-            client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
-
-            prompt = f"""You are DroidRaksha's AI analyst — an expert in Android malware targeting Indian users.
+    prompt = f"""You are DroidRaksha's AI analyst — an expert in Android malware targeting Indian users.
 
 Analyze this APK threat report and write a professional, concise security narrative (3-4 paragraphs).
 Be specific about India-specific threats (UPI fraud, Aadhaar theft, banking trojans).
@@ -118,29 +129,47 @@ Then list 5 specific security recommendations starting with "RECOMMENDATIONS:"
 Each recommendation on a new line starting with "•"
 """
 
+    # 1. Try Gemini
+    if GEMINI_API_KEY:
+        try:
+            import google.generativeai as genai
+            genai.configure(api_key=GEMINI_API_KEY)
+            model = genai.GenerativeModel('gemini-1.5-flash')
+            response = model.generate_content(prompt)
+            return _parse_ai_response(response.text)
+        except Exception as e:
+            logger.error(f"Gemini API error: {e}")
+
+    # 2. Try Groq
+    if GROQ_API_KEY:
+        try:
+            from groq import Groq
+            client = Groq(api_key=GROQ_API_KEY)
+            completion = client.chat.completions.create(
+                model="llama3-8b-8192",
+                messages=[{"role": "user", "content": prompt}],
+            )
+            return _parse_ai_response(completion.choices[0].message.content)
+        except Exception as e:
+            logger.error(f"Groq API error: {e}")
+
+    # 3. Try Anthropic (Original)
+    if ANTHROPIC_API_KEY:
+        try:
+            import anthropic
+            client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
             message = client.messages.create(
-                model="claude-opus-4-5",
+                model="claude-3-opus-20240229",
                 max_tokens=1024,
                 messages=[{"role": "user", "content": prompt}],
             )
-
-            full_text = message.content[0].text
-            parts = full_text.split("RECOMMENDATIONS:")
-            narrative = parts[0].strip()
-            recommendations = []
-            if len(parts) > 1:
-                for line in parts[1].strip().split("\n"):
-                    line = line.strip().lstrip("•").strip()
-                    if line:
-                        recommendations.append(line)
-
-            return narrative, recommendations[:5]
-
+            return _parse_ai_response(message.content[0].text)
         except Exception as e:
             logger.error(f"Claude API error: {e}")
 
     # Template fallback
     return _template_narrative(pkg, risk_level, score, categories, yara_rules, india_ioc)
+
 
 
 def _template_narrative(
