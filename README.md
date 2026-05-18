@@ -242,14 +242,21 @@ Here is a detailed breakdown of what we are building for the Hackathon Demo (Rou
 
 Follow these steps to run the DroidRaksha Demo (Round 1) locally on your machine.
 
-### 1. Environment Setup
+### 1. Clone the Repository
+First, clone the code to your local machine and navigate into the project directory:
+```bash
+git clone https://github.com/praju455/DroidRaksha-.git
+cd DroidRaksha-
+```
+
+### 2. Environment Setup
 Create your environment variables file in the root directory:
 ```bash
 cp .env.example .env
 ```
 Open `.env` and fill in your API keys (`GEMINI_API_KEY`, `GROQ_API_KEY`, `VIRUSTOTAL_API_KEY`, etc.).
 
-### 2. Start the Backend
+### 3. Start the Backend
 The backend requires Python 3.11+. It is highly recommended to use a virtual environment.
 ```bash
 python -m venv .venv
@@ -259,7 +266,7 @@ uvicorn backend.main:app --host 0.0.0.0 --port 8000 --reload
 ```
 *Note for Mac/Linux users: To use the "Download Report (PDF)" feature locally, you must install WeasyPrint system dependencies (e.g., `brew install pango cairo libffi`). If they are missing, the backend will safely fallback to returning raw JSON data instead of crashing.*
 
-### 3. Start the Frontend
+### 4. Start the Frontend
 Open a new terminal window for the Next.js frontend:
 ```bash
 cd frontend
@@ -267,7 +274,7 @@ npm install
 npm run dev
 ```
 
-### 4. Test It Out
+### 5. Test It Out
 1. Open your browser and go to `http://localhost:3000`.
 2. Drag and drop any Android `.apk` file into the upload zone.
 3. Wait for the pipeline to finish analyzing the APK and generating the AI narrative.
