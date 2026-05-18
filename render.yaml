@@ -13,7 +13,9 @@ services:
         value: ./uploads
       - key: DEBUG
         value: false
-      - key: ANTHROPIC_API_KEY
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: GROQ_API_KEY
         sync: false
       - key: VIRUSTOTAL_API_KEY
         sync: false
