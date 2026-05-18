@@ -182,6 +182,9 @@ DroidRaksha is built using a modern, scalable, and distributed technology stack,
 
 ## 🏁 Demo Round vs Final Round (Diff)
 
+> **Note on Hackathon Progress:** 
+> The current state of this repository reflects the **Demo Round (Round 1)** prototype. We have successfully built the foundational architecture, the Next.js frontend dashboard, and the core FastAPI backend with essential static analysis and PDF reporting capabilities. All the remaining advanced features (such as dynamic sandboxing, distributed Celery workers, and live beacon detection) are scheduled to be built during the **Final Round (Round 2)**.
+
 Here is a detailed breakdown of what we are building for the Hackathon Demo (Round 1) versus the Full Platform Vision (Round 2):
 
 | Category | Technology | Round 1 (Demo Prototype) | Round 2 (Full Platform) | Change |
