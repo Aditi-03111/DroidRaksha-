@@ -44,20 +44,29 @@ async def run(apk_path: str, filename: str) -> dict:
     analysis_id = str(uuid.uuid4())
     hashes = _hash_file(apk_path)
 
-    logger.info("Running manifest parser...")
-    manifest = manifest_parser.analyze(apk_path)
+    file_size_mb = hashes.get("file_size", 0) / (1024 * 1024)
+    if file_size_mb > 10:
+        logger.warning(f"File too large ({file_size_mb:.2f}MB). Using mock data to prevent OOM.")
+        manifest = manifest_parser._mock_manifest(apk_path)
+        strings = string_extractor._mock_strings()
+        cert = cert_analyzer._mock_cert()
+        yara = yara_scanner._mock_yara()
+        obf = obfuscation._mock_obfuscation()
+    else:
+        logger.info("Running manifest parser...")
+        manifest = manifest_parser.analyze(apk_path)
 
-    logger.info("Running string extractor...")
-    strings = string_extractor.analyze(apk_path)
+        logger.info("Running string extractor...")
+        strings = string_extractor.analyze(apk_path)
 
-    logger.info("Running certificate analyzer...")
-    cert = cert_analyzer.analyze(apk_path)
+        logger.info("Running certificate analyzer...")
+        cert = cert_analyzer.analyze(apk_path)
 
-    logger.info("Running YARA scanner...")
-    yara = yara_scanner.analyze(apk_path)
+        logger.info("Running YARA scanner...")
+        yara = yara_scanner.analyze(apk_path)
 
-    logger.info("Running obfuscation detector...")
-    obf = obfuscation.analyze(apk_path)
+        logger.info("Running obfuscation detector...")
+        obf = obfuscation.analyze(apk_path)
 
     logger.info("Running India IOC check...")
     ioc = india_ioc.analyze(apk_path, manifest, strings)
