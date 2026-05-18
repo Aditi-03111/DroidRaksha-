@@ -1,0 +1,21 @@
+services:
+  - type: web
+    name: droidraksha-backend
+    env: docker
+    dockerfilePath: ./Dockerfile
+    plan: free
+    envVars:
+      - key: FRONTEND_URL
+        value: https://droidraksha.vercel.app # Replace with actual Vercel URL
+      - key: DATABASE_URL
+        value: sqlite+aiosqlite:///./droidraksha.db
+      - key: UPLOAD_DIR
+        value: ./uploads
+      - key: DEBUG
+        value: false
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: VIRUSTOTAL_API_KEY
+        sync: false
+      - key: ABUSEIPDB_API_KEY
+        sync: false
