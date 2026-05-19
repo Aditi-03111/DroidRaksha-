@@ -258,13 +258,23 @@ Open `.env` and fill in your API keys (`GEMINI_API_KEY`, `GROQ_API_KEY`, `VIRUST
 
 ### 3. Start the Backend
 The backend requires Python 3.11+. It is highly recommended to use a virtual environment.
+
+**For Mac/Linux:**
 ```bash
-python -m venv .venv
-source .venv/bin/activate  # On Windows use: .venv\Scripts\activate
+python3 -m venv .venv
+source .venv/bin/activate
 pip install -r requirements.txt
 uvicorn backend.main:app --host 0.0.0.0 --port 8000 --reload
 ```
 *Note for Mac/Linux users: To use the "Download Report (PDF)" feature locally, you must install WeasyPrint system dependencies (e.g., `brew install pango cairo libffi`). If they are missing, the backend will safely fallback to returning raw JSON data instead of crashing.*
+
+**For Windows:**
+```powershell
+python -m venv .venv
+.venv\Scripts\activate
+pip install -r requirements.txt
+uvicorn backend.main:app --host 0.0.0.0 --port 8000 --reload
+```
 
 ### 4. Start the Frontend
 Open a new terminal window for the Next.js frontend:

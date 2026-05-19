@@ -1,0 +1,32 @@
+# Virtual Environment
+.venv/
+env/
+venv/
+ENV/
+
+# Python Cache
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Environment Variables
+.env
+
+# Database
+*.db
+*.sqlite3
+droidraksha.db
+
+# OS specific
+.DS_Store
+
+# Frontend build/cache
+frontend/node_modules/
+frontend/.next/
+frontend/out/
+
+# Uploads and temporary files
+uploads/
+/tmp/
+*.pcap
+*.pdf
