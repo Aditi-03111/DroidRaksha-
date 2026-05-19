@@ -275,6 +275,7 @@ python -m venv .venv
 pip install -r requirements.txt
 uvicorn backend.main:app --host 0.0.0.0 --port 8000 --reload
 ```
+*Note for Windows users: To use the "Download Report (PDF)" feature locally, WeasyPrint requires GTK3 dependencies. You will need to install the [GTK3 Runtime](https://github.com/tschoonj/GTK-for-Windows-Runtime-Environment-Installer/releases) and ensure it is in your system PATH. If missing, the backend will safely fallback to JSON data.*
 
 ### 4. Start the Frontend
 Open a new terminal window for the Next.js frontend:
