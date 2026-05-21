@@ -83,6 +83,41 @@ graph TD
     class RDS,Mongo,Elastic,S3 data;
 ```
 
+### 🔍 Detailed Architecture Explanation
+
+The architecture is divided into six primary subsystems working together to analyze and classify Android APKs:
+
+#### 1. Clients & Gateway
+*   **Next.js 14 Web Dashboard & React Native Android App:** Serve as the user interfaces for analysts and end-users to submit APKs and view results.
+*   **Nginx Reverse Proxy & Load Balancer:** The secure entry point that handles incoming HTTPS/WSS traffic, providing SSL termination and routing requests to the backend.
+
+#### 2. Backend & Orchestration
+*   **FastAPI Gateway:** The core asynchronous API that processes REST requests and manages real-time WebSocket connections.
+*   **Redis Cache & Queue:** Acts as a high-speed message broker for job queuing and caches state for fast lookups.
+*   **Celery Workers:** Distributed worker nodes that pull jobs from Redis and asynchronously execute resource-intensive static and dynamic analysis tasks.
+
+#### 3. Static Analysis
+*   **Androguard & APKTool:** Tools for reverse engineering, decompiling the APK, and extracting manifest data and bytecode.
+*   **YARA Engine (50+ Rules):** Scans the extracted files against a comprehensive ruleset to detect known malicious signatures.
+*   **Obfuscation & Heuristics:** Specialized modules that identify packed code, hidden payloads, and suspicious static traits.
+
+#### 4. Dynamic Sandbox
+*   **MobSF + Docker:** A secure, containerized environment where the APK is executed safely to monitor its behavior.
+*   **Frida Runtime Hooks:** Used to hook into the running application to trace API calls, file I/O, and cryptographic operations.
+*   **PCAP & mitmproxy:** Captures and analyzes network traffic to identify suspicious communications.
+
+#### 5. C2 & Threat Intel
+*   **India IOC DB:** A curated database of Indicators of Compromise (IOCs) specifically targeting the Indian landscape (e.g., fake UPI apps).
+*   **DGA / JA3 / Beaconing Detection:** Advanced network analysis to identify Domain Generation Algorithms, malicious TLS fingerprints (JA3), and C2 beaconing.
+*   **External APIs (VT / AbuseIPDB / OTX):** Integrations with VirusTotal, AbuseIPDB, and AlienVault OTX to enrich threat data.
+*   **Claude AI + ML Classifier:** AI-driven threat narrative generation and custom machine learning models to classify the malware family.
+
+#### 6. Data Layer
+*   **AWS RDS (PostgreSQL):** Stores relational data like user details, scan metadata, and structured metrics.
+*   **MongoDB Atlas:** Stores large, unstructured JSON outputs from the analysis engines.
+*   **Elasticsearch:** Enables rapid search capabilities across IOCs and assists in clustering related threat campaigns.
+*   **AWS S3 Storage:** Secure object storage for heavy artifacts including uploaded APKs, captured PCAPs, and generated PDF reports.
+
 ## 📁 Folder Structure
 
 ```text
