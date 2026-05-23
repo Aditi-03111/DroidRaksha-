@@ -56,9 +56,12 @@ async def get_report(identifier: str):
             except:
                 pass
 
-    pkg = data.get("package_name", "Unknown Package")
-    score = data.get("risk_score", 0)
+    pkg = data.get("manifest", {}).get("package_name", "Unknown Package")
+    score = data.get("risk", {}).get("score", 0)
     narrative = data.get("ai_narrative", "No narrative available.")
+    recommendations = data.get("ai_recommendations", [])
+    yara_matches = data.get("yara", {}).get("matches", [])
+    permissions = data.get("manifest", {}).get("permissions", [])
     
     # Simple HTML template for the PDF
     html_content = f"""
@@ -105,19 +108,19 @@ async def get_report(identifier: str):
             <div class="section-title">Security Recommendations</div>
             <div class="recommendations">
                 <ul>
-                    {"".join([f"<li>{r}</li>" for r in data.get("recommendations", [])]) or "<li>No specific recommendations available.</li>"}
+                    {"".join([f"<li>{r}</li>" for r in recommendations]) or "<li>No specific recommendations available.</li>"}
                 </ul>
             </div>
         </div>
 
         <div class="section">
             <div class="section-title">YARA Rules Matched</div>
-            {f"<table><tr><th>Rule</th><th>Description</th></tr>" + "".join([f"<tr><td>{m.get('rule')}</td><td>{m.get('description', 'N/A')}</td></tr>" for m in data.get("yara_matches", [])]) + "</table>" if data.get("yara_matches") else "<p>No YARA rules matched.</p>"}
+            {f"<table><tr><th>Rule</th><th>Description</th></tr>" + "".join([f"<tr><td>{m.get('rule')}</td><td>{m.get('description', 'N/A')}</td></tr>" for m in yara_matches]) + "</table>" if yara_matches else "<p>No YARA rules matched.</p>"}
         </div>
 
         <div class="section">
             <div class="section-title">Dangerous Permissions</div>
-            {f"<ul>" + "".join([f"<li><strong>{p.get('name')}</strong>: {p.get('description', 'N/A')}</li>" for p in data.get("permissions", []) if p.get("is_dangerous")]) + "</ul>" if data.get("permissions") else "<p>No permissions listed.</p>"}
+            {f"<ul>" + "".join([f"<li><strong>{p.get('name')}</strong>: {p.get('description', 'N/A')}</li>" for p in permissions if p.get("is_dangerous")]) + "</ul>" if permissions else "<p>No permissions listed.</p>"}
         </div>
 
         <div class="footer">
@@ -127,8 +130,9 @@ async def get_report(identifier: str):
     </html>
     """
 
+    import asyncio
     # Generate PDF
-    pdf_bytes = HTML(string=html_content).write_pdf()
+    pdf_bytes = await asyncio.to_thread(HTML(string=html_content).write_pdf)
 
     return Response(
         content=pdf_bytes,

@@ -296,21 +296,21 @@ The backend requires Python 3.11+. It is highly recommended to use a virtual env
 
 **For Mac/Linux:**
 ```bash
-python3 -m venv .venv
-source .venv/bin/activate
+# If using Anaconda (Recommended for PDF Generation):
+conda install -y -c conda-forge weasyprint pango cairo glib fontconfig
 pip install -r requirements.txt
 uvicorn backend.main:app --host 0.0.0.0 --port 8000 --reload
 ```
-*Note for Mac/Linux users: To use the "Download Report (PDF)" feature locally, you must install WeasyPrint system dependencies (e.g., `brew install pango cairo libffi`). If they are missing, the backend will safely fallback to returning raw JSON data instead of crashing.*
+*Note for Mac/Linux users: If not using Anaconda, you must install WeasyPrint system dependencies manually (e.g., `brew install pango cairo glib`). If they are missing, the backend will safely fallback to returning raw JSON data instead of crashing.*
 
 **For Windows:**
 ```powershell
-python -m venv .venv
-.venv\Scripts\activate
+# If using Anaconda (Recommended for PDF Generation):
+conda install -y -c conda-forge weasyprint pango cairo glib fontconfig
 pip install -r requirements.txt
 uvicorn backend.main:app --host 0.0.0.0 --port 8000 --reload
 ```
-*Note for Windows users: To use the "Download Report (PDF)" feature locally, WeasyPrint requires GTK3 dependencies. You will need to install the [GTK3 Runtime](https://github.com/tschoonj/GTK-for-Windows-Runtime-Environment-Installer/releases) and ensure it is in your system PATH. If missing, the backend will safely fallback to JSON data.*
+*Note for Windows users: To use the "Download Report (PDF)" feature locally, WeasyPrint requires complex GTK3 dependencies. The easiest way to install these on Windows is to use **Anaconda** and run the `conda install` command above. Otherwise, you will need to manually install the [GTK3 Runtime](https://github.com/tschoonj/GTK-for-Windows-Runtime-Environment-Installer/releases) and add it to your system PATH. If missing, the backend will safely fallback to JSON data.*
 
 ### 4. Start the Frontend
 Open a new terminal window for the Next.js frontend:
