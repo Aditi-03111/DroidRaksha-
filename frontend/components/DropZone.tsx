@@ -16,8 +16,8 @@ export default function DropZone({ onUpload, isLoading }: DropZoneProps) {
       setError("Only .apk files are accepted");
       return false;
     }
-    if (file.size > 500 * 1024 * 1024) {
-      setError("File size must be under 500 MB");
+    if (file.size > 700 * 1024 * 1024) {
+      setError("File size must be under 700 MB");
       return false;
     }
     setError(null);
@@ -94,7 +94,7 @@ export default function DropZone({ onUpload, isLoading }: DropZoneProps) {
                 <span className="text-indigo-400 underline underline-offset-2">
                   browse to upload
                 </span>
-                {" "}— max 500 MB
+                {" "}— max 700 MB
               </p>
             </div>
 

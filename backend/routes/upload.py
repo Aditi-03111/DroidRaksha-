@@ -15,7 +15,7 @@ from backend.db import database
 router = APIRouter()
 
 UPLOAD_DIR = os.getenv("UPLOAD_DIR", "./uploads")
-MAX_FILE_SIZE = 500 * 1024 * 1024  # 500MB
+MAX_FILE_SIZE = 700 * 1024 * 1024  # 700MB
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 
@@ -37,7 +37,7 @@ async def upload_apk(file: UploadFile = File(...)):
     data = await file.read()
 
     if len(data) > MAX_FILE_SIZE:
-        raise HTTPException(status_code=413, detail="File too large (max 500MB)")
+        raise HTTPException(status_code=413, detail="File too large (max 700MB)")
 
     if not _is_apk(file.filename, data):
         raise HTTPException(

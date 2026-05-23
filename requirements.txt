@@ -11,7 +11,7 @@ aiosqlite==0.20.0
 
 # APK Analysis
 androguard==3.3.5
-yara-python==4.5.1
+yara-python>=4.5.4
 
 # Crypto / Certs
 cryptography==43.0.3
