@@ -45,7 +45,7 @@ async def run(apk_path: str, filename: str) -> dict:
     hashes = _hash_file(apk_path)
 
     file_size_mb = hashes.get("file_size", 0) / (1024 * 1024)
-    if file_size_mb > 10:
+    if file_size_mb > 700:
         logger.warning(f"File too large ({file_size_mb:.2f}MB). Using mock data to prevent OOM.")
         manifest = manifest_parser._mock_manifest(apk_path)
         strings = string_extractor._mock_strings()
