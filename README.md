@@ -4,20 +4,7 @@
 
 DroidRaksha is an advanced, high-performance static analysis platform designed to detect Android malware, specifically tailored for the Indian cybersecurity landscape. It identifies banking trojans, UPI fraud apps, loan scams, and other mobile threats through a multi-engine analysis pipeline, leveraging YARA rules, heuristics, and AI-driven narrative generation.
 
----
-
-## 🔗 Quick Links
-
-| Resource | Link |
-|:---|:---|
-| 🌐 **Live Demo** | [https://droid-raksha.vercel.app/](https://droid-raksha.vercel.app/) |
-| 🎥 **YouTube Demo** | [DroidRaksha – An AI Powered APK Threat Intelligence Platform by PHAPGUYZ](https://www.youtube.com/watch?v=your-video-id) |
-| 📊 **PPT / Presentation** | [View on Canva](https://canva.link/1sda3lngedx2cl8) |
-| 💻 **GitHub Repository** | [praju455/DroidRaksha-](https://github.com/praju455/DroidRaksha-.git) |
-
-> 🚀 **Try it live:** [https://droid-raksha.vercel.app/](https://droid-raksha.vercel.app/)
-
----
+🎥 **YouTube Demo:** [DroidRaksha – An AI Powered APK Threat Intelligence Platform by PHAPGUYZ](https://www.youtube.com/watch?v=your-video-id)
 
 ## 🏗️ Architecture
 
