@@ -271,7 +271,7 @@ Here is a detailed breakdown of what we are building for the Hackathon Demo (Rou
 | CI/CD | GitHub Actions | Not set up | Auto deploy on push | New |
 | Monitoring | Sentry / Grafana | Not set up | Error tracking + metrics | New |
 | **Exports & Sharing**| | | | |
-| PDF report | WeasyPrint | Basic PDF | Branded forensic PDF | Upgrade |
+| PDF report | ReportLab | Basic PDF | Branded forensic PDF | Upgrade |
 | Threat sharing | STIX 2.1 | Not built | STIX/TAXII export | New |
 | Bulk API | REST API | Not built | API key + rate limiting | New |
 | Public report | Next.js SSR | Basic shareable URL | OG tags + WhatsApp preview | Upgrade |
@@ -298,21 +298,15 @@ The backend requires Python 3.11+. It is highly recommended to use a virtual env
 
 **For Mac/Linux:**
 ```bash
-# If using Anaconda (Recommended for PDF Generation):
-conda install -y -c conda-forge weasyprint pango cairo glib fontconfig
 pip install -r requirements.txt
 uvicorn backend.main:app --host 0.0.0.0 --port 8000 --reload
 ```
-*Note for Mac/Linux users: If not using Anaconda, you must install WeasyPrint system dependencies manually (e.g., `brew install pango cairo glib`). If they are missing, the backend will safely fallback to returning raw JSON data instead of crashing.*
 
 **For Windows:**
 ```powershell
-# If using Anaconda (Recommended for PDF Generation):
-conda install -y -c conda-forge weasyprint pango cairo glib fontconfig
 pip install -r requirements.txt
 uvicorn backend.main:app --host 0.0.0.0 --port 8000 --reload
 ```
-*Note for Windows users: To use the "Download Report (PDF)" feature locally, WeasyPrint requires complex GTK3 dependencies. The easiest way to install these on Windows is to use **Anaconda** and run the `conda install` command above. Otherwise, you will need to manually install the [GTK3 Runtime](https://github.com/tschoonj/GTK-for-Windows-Runtime-Environment-Installer/releases) and add it to your system PATH. If missing, the backend will safely fallback to JSON data.*
 
 ### 4. Start the Frontend
 Open a new terminal window for the Next.js frontend:
