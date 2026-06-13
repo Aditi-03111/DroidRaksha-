@@ -24,8 +24,16 @@ _redis = sync_redis.from_url(REDIS_URL, decode_responses=True)
 
 
 def _publish(job_id: str, payload: dict) -> None:
-    """Publish a progress event to the job's Redis channel."""
-    _redis.publish(f"progress:{job_id}", json.dumps(payload))
+    """
+    Publish a progress event to the job's Redis channel AND append to a
+    buffered list so late WebSocket connections can replay missed events.
+    """
+    data = json.dumps(payload)
+    # Pub/Sub for live subscribers
+    _redis.publish(f"progress:{job_id}", data)
+    # Buffered list for late-joining WebSockets (replayed on connect)
+    _redis.rpush(f"progress_log:{job_id}", data)
+    _redis.expire(f"progress_log:{job_id}", 600)  # 10 min TTL
 
 
 def _run_async(coro):
