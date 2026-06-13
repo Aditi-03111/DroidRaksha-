@@ -1,19 +1,23 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import Image from "next/image";
 import { Shield, ShieldAlert, ShieldCheck, Zap, BarChart3, Activity } from "lucide-react";
 import DropZone from "@/components/DropZone";
-import AnalysisLoader from "@/components/AnalysisLoader";
+import AnalysisProgress from "@/components/AnalysisProgress";
 import { getStats, uploadApk } from "@/lib/api";
 import type { DashboardStats } from "@/lib/types";
+
+type UploadState =
+  | { phase: "idle" }
+  | { phase: "uploading" }
+  | { phase: "progress"; jobId: string }
+  | { phase: "error"; msg: string };
 
 export default function Home() {
   const router = useRouter();
   const [stats, setStats] = useState<DashboardStats | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [uploadState, setUploadState] = useState<UploadState>({ phase: "idle" });
 
   useEffect(() => {
     getStats()
@@ -22,22 +26,37 @@ export default function Home() {
   }, []);
 
   const handleUpload = async (file: File) => {
-    setIsLoading(true);
-    setError(null);
+    setUploadState({ phase: "uploading" });
     try {
-      const result = await uploadApk(file);
-      // Redirect to the results page on success
-      router.push(`/results/${result.id}`);
+      const response = await uploadApk(file);
+
+      // Cache hit or sync fallback — result ready immediately
+      if (response.status === "complete" && response.result) {
+        router.push(`/results/${response.result.id}`);
+        return;
+      }
+
+      // Queued — hand off to WebSocket progress UI
+      setUploadState({ phase: "progress", jobId: response.job_id });
+
     } catch (err: any) {
-      console.error("Upload failed:", err);
-      setError(err.message || "Analysis failed. Please try again.");
-      setIsLoading(false);
+      setUploadState({ phase: "error", msg: err.message || "Upload failed. Please try again." });
     }
   };
 
+  const handleComplete = useCallback((analysisId: string) => {
+    router.push(`/results/${analysisId}`);
+  }, [router]);
+
+  const handleError = useCallback((msg: string) => {
+    setUploadState({ phase: "error", msg });
+  }, []);
+
+  const isLoading = uploadState.phase === "uploading" || uploadState.phase === "progress";
+
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-6 md:p-12 gap-12">
-      {/* Background grid effect */}
+      {/* Background grid */}
       <div className="absolute inset-0 bg-[linear-gradient(to_right,#1f2937_1px,transparent_1px),linear-gradient(to_bottom,#1f2937_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)] -z-10 opacity-30" />
 
       {/* Header */}
@@ -50,69 +69,64 @@ export default function Home() {
           Droid<span className="gradient-text">Raksha</span>
         </h1>
         <p className="text-slate-400 text-lg md:text-xl max-w-2xl mx-auto">
-          Advanced static analysis platform designed to detect Android malware, banking trojans, and UPI fraud apps targeting the Indian ecosystem.
+          Advanced static analysis platform designed to detect Android malware, banking trojans,
+          and UPI fraud apps targeting the Indian ecosystem.
         </p>
       </div>
 
       {/* Stats Grid */}
       {stats && (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 w-full max-w-4xl animate-fade-in-up delay-100">
-          <StatCard
-            icon={<Activity className="text-indigo-400" />}
-            label="Total Scans"
-            value={stats.total_analyses}
-          />
-          <StatCard
-            icon={<ShieldAlert className="text-rose-400" />}
-            label="Critical Threats"
-            value={stats.critical_count + stats.high_count}
-          />
-          <StatCard
-            icon={<ShieldCheck className="text-cyan-400" />}
-            label="Safe Apps"
-            value={stats.safe_count}
-          />
-          <StatCard
-            icon={<BarChart3 className="text-yellow-400" />}
-            label="Avg Risk Score"
-            value={`${Math.round(stats.avg_risk_score)}/100`}
-          />
+          <StatCard icon={<Activity className="text-indigo-400" />} label="Total Scans" value={stats.total_analyses ?? 0} />
+          <StatCard icon={<ShieldAlert className="text-rose-400" />} label="Critical Threats" value={(stats.critical_count ?? 0) + (stats.high_count ?? 0)} />
+          <StatCard icon={<ShieldCheck className="text-cyan-400" />} label="Safe Apps" value={stats.safe_count ?? 0} />
+          <StatCard icon={<BarChart3 className="text-yellow-400" />} label="Rules Active" value="50" />
         </div>
       )}
 
       {/* Main Action Area */}
       <div className="w-full max-w-2xl card-surface p-8 rounded-2xl animate-fade-in-up delay-200 glass relative overflow-hidden">
-        {/* Decorative background glow */}
         <div className="absolute -top-24 -left-24 w-48 h-48 bg-indigo-500/20 rounded-full blur-3xl -z-10" />
         <div className="absolute -bottom-24 -right-24 w-48 h-48 bg-cyan-500/20 rounded-full blur-3xl -z-10" />
 
-        {isLoading ? (
-          <AnalysisLoader />
+        {uploadState.phase === "progress" ? (
+          <AnalysisProgress
+            jobId={uploadState.jobId}
+            onComplete={handleComplete}
+            onError={handleError}
+          />
         ) : (
           <div className="space-y-6">
             <div className="text-center">
               <h2 className="text-xl font-semibold text-slate-100">Upload APK for Analysis</h2>
               <p className="text-sm text-slate-400 mt-1">
-                Your file will be scanned against 50+ YARA rules and analyzed by AI.
+                Scanned against 50 YARA rules, MITRE ATT&CK mapped, AI narrative generated.
               </p>
             </div>
-            
+
             <DropZone onUpload={handleUpload} isLoading={isLoading} />
 
-            {error && (
-              <div className="p-3 rounded-lg bg-rose-500/10 border border-rose-500/20 text-rose-400 text-sm text-center">
-                {error}
+            {uploadState.phase === "error" && (
+              <div className="p-3 rounded-lg bg-rose-500/10 border border-rose-500/20 text-rose-400 text-sm text-center flex items-center justify-center gap-2">
+                <ShieldAlert className="w-4 h-4 flex-shrink-0" />
+                {uploadState.msg}
+                <button
+                  onClick={() => setUploadState({ phase: "idle" })}
+                  className="ml-2 underline text-xs hover:text-rose-300"
+                >
+                  Try again
+                </button>
               </div>
             )}
           </div>
         )}
       </div>
 
-      {/* Footer / Tech Info */}
+      {/* Footer */}
       <div className="flex flex-col items-center gap-2 text-xs text-slate-600 animate-fade-in-up delay-300">
-        <p>Powered by Androguard, YARA, and Anthropic Claude</p>
+        <p>Powered by Androguard · 50 YARA rules · Celery + Redis · Anthropic Claude</p>
         <div className="flex gap-4">
-          <span>v1.0.0</span>
+          <span>v2.0.0</span>
           <span>•</span>
           <span>Confidential & Secure</span>
         </div>

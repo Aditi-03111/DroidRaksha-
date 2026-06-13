@@ -11,7 +11,7 @@ from dotenv import load_dotenv
 from loguru import logger
 
 from backend.db.database import init_db
-from backend.routes import upload, analysis, report, stats
+from backend.routes import upload, analysis, report, stats, websocket
 
 load_dotenv()
 
@@ -46,11 +46,12 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Register routes
-app.include_router(upload.router, tags=["Analysis"])
-app.include_router(analysis.router, tags=["Analysis"])
-app.include_router(report.router, tags=["Reports"])
-app.include_router(stats.router, tags=["Dashboard"])
+# Register routes — all under /api prefix
+app.include_router(upload.router, prefix="/api", tags=["Analysis"])
+app.include_router(analysis.router, prefix="/api", tags=["Analysis"])
+app.include_router(report.router, prefix="/api", tags=["Reports"])
+app.include_router(stats.router, prefix="/api", tags=["Dashboard"])
+app.include_router(websocket.router, prefix="/api", tags=["WebSocket"])
 
 
 @app.get("/health")
