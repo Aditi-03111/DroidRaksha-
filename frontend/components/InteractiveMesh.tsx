@@ -74,8 +74,8 @@ export default function InteractiveMesh() {
         this.y += this.dy;
 
         // Bounce off edges
-        if (this.x < 0 || this.x > canvas.width) this.dx = -this.dx;
-        if (this.y < 0 || this.y > canvas.height) this.dy = -this.dy;
+        if (this.x < 0 || this.x > canvas!.width) this.dx = -this.dx;
+        if (this.y < 0 || this.y > canvas!.height) this.dy = -this.dy;
 
         // Mouse interaction
         const dx = mouse.x - this.x;
@@ -109,8 +109,8 @@ export default function InteractiveMesh() {
     function init() {
       particles = [];
       for (let i = 0; i < numParticles; i++) {
-        const x = Math.random() * canvas.width;
-        const y = Math.random() * canvas.height;
+        const x = Math.random() * canvas!.width;
+        const y = Math.random() * canvas!.height;
         particles.push(new Particle(x, y));
       }
     }
@@ -137,7 +137,7 @@ export default function InteractiveMesh() {
     }
 
     function animate() {
-      if (!ctx) return;
+      if (!ctx || !canvas) return;
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       for (let i = 0; i < particles.length; i++) {
         particles[i].update();

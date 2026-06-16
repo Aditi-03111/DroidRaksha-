@@ -261,7 +261,7 @@ export default function ResultsPage() {
           <div className="max-w-4xl">
             <NetworkTrafficPanel
               analysisId={result.id}
-              initialNetwork={(result as Record<string, unknown>).network as Parameters<typeof NetworkTrafficPanel>[0]["initialNetwork"] ?? null}
+              initialNetwork={result.network as Parameters<typeof NetworkTrafficPanel>[0]["initialNetwork"] ?? null}
             />
           </div>
         )}

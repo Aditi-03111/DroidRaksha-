@@ -230,22 +230,27 @@ export interface AnalysisResult {
   // AI Narrative
   ai_narrative: string;
   ai_recommendations: string[];
+  network?: any;
 }
 
 export interface DashboardStats {
-  total_analyses: number;
+  total_analyzed: number;
+  threats_detected: number;
+  india_threats: number;
   critical_count: number;
   high_count: number;
   medium_count: number;
   low_count: number;
   safe_count: number;
-  avg_risk_score: number;
-  top_threat_categories: Array<{ category: string; count: number }>;
+  family_breakdown: Record<string, number>;
+  india_targeted: number;
+  pcap_scans: number;
   recent_analyses: Array<{
     id: string;
     filename: string;
+    package_name: string;
+    risk_score: number;
     risk_level: string;
-    score: number;
     created_at: string;
   }>;
 }

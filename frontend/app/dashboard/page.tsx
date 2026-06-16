@@ -268,7 +268,7 @@ export default function DashboardPage() {
 
   const isUploading = uploadState.phase === "uploading" || uploadState.phase === "progress";
   const recentScans: RecentScan[] = stats?.recent_analyses ?? [];
-  const familyData  = (stats as Record<string, unknown>)?.family_breakdown as Record<string, number> ?? {};
+  const familyData  = stats?.family_breakdown ?? {};
 
   return (
     <div className="min-h-screen bg-black grid-bg relative p-6 md:p-12">
@@ -307,9 +307,9 @@ export default function DashboardPage() {
             <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-6">
               <StatCard label="Total Scans" value={stats.total_analyzed ?? 0} />
               <StatCard label="Critical Threats" value={(stats.critical_count ?? 0) + (stats.high_count ?? 0)} pulseColor="#f43f5e" />
-              <StatCard label="India Targeted" value={(stats as Record<string, unknown>).india_targeted as number ?? 0} />
+              <StatCard label="India Targeted" value={stats.india_targeted ?? 0} />
               <StatCard label="Safe Apps" value={stats.safe_count ?? 0} />
-              <StatCard label="PCAP Scans" value={(stats as Record<string, unknown>).pcap_scans as number ?? 0} />
+              <StatCard label="PCAP Scans" value={stats.pcap_scans ?? 0} />
               <StatCard label="YARA Rules" value={50} />
             </div>
 
