@@ -1,11 +1,10 @@
 """
 SQLite database setup and CRUD operations using SQLAlchemy async.
 """
-from __future__ import annotations
 import json
 import os
 from datetime import datetime, timezone
-from typing import Optional
+from typing import Optional, Union
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 from sqlalchemy import String, Integer, Text, DateTime, select
@@ -43,7 +42,8 @@ class PCAPRecord(Base):
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True)
     filename: Mapped[str] = mapped_column(String(255))
-    analysis_id: Mapped[Optional[str]] = mapped_column(String(36), nullable=True, index=True)
+    # Plain Column avoids Mapped[Optional[str]] issues on Python 3.14 + SQLAlchemy 2.x
+    analysis_id = mapped_column(String(36), nullable=True, index=True, default=None)
     pcap_risk: Mapped[str] = mapped_column(String(20), default="UNKNOWN")
     result_json: Mapped[str] = mapped_column(Text)
     created_at: Mapped[datetime] = mapped_column(
