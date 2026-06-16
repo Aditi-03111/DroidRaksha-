@@ -67,6 +67,14 @@ def run_analysis_task(self, apk_path: str, filename: str, job_id: str) -> dict:
     from backend.intel import india_ioc, virustotal, abuseipdb
     from backend.scoring import risk_scorer
     from backend.ai import narrative as ai_narrative_module
+    from backend.ai import (
+        classifier as family_classifier,
+        mitre_full,
+        xgboost_classifier,
+        anomaly_detector,
+        malbert_classifier,
+        langchain_agent,
+    )
     from backend.db import database
 
     try:
@@ -115,19 +123,47 @@ def run_analysis_task(self, apk_path: str, filename: str, job_id: str) -> dict:
         ip_list = [item["value"] for item in strings.get("ips", [])]
         abuse = _run_async(abuseipdb.analyze(ip_list))
 
-        # ── Stage 9: Risk Score (87%) ─────────────────────────────────────
-        _publish(job_id, {"stage": "risk_score", "pct": 87, "msg": "Calculating risk score..."})
+        # ── Stage 9: Risk Score (82%) ────────────────────────────────────
+        _publish(job_id, {"stage": "risk_score", "pct": 82, "msg": "Calculating risk score..."})
         risk = risk_scorer.calculate(manifest, strings, cert, yara, obf, vt, abuse, ioc)
 
-        # ── Stage 10: MITRE ATT&CK (92%) ─────────────────────────────────
-        _publish(job_id, {"stage": "mitre", "pct": 92, "msg": "Mapping MITRE ATT&CK techniques..."})
-        mitre = ai_narrative_module.get_mitre_tactics(manifest, obf, yara)
+        # ── Stage 10: Rule-Based Family Classifier (85%) ────────────────────
+        _publish(job_id, {"stage": "classify", "pct": 85, "msg": "Classifying malware family..."})
+        family_result = family_classifier.classify(manifest, strings, yara, obf, ioc, vt)
 
-        # ── Stage 11: AI Narrative (97%) ─────────────────────────────────
-        _publish(job_id, {"stage": "ai", "pct": 97, "msg": "Generating AI threat narrative..."})
-        ai_text, recommendations = _run_async(
-            ai_narrative_module.generate_narrative(manifest, risk, yara, ioc, cert, obf)
+        # ── Stage 11: XGBoost + SHAP (88%) ───────────────────────────────
+        _publish(job_id, {"stage": "xgboost", "pct": 88, "msg": "Running XGBoost classifier (MalDroid 2020)..."})
+        xgb_result = xgboost_classifier.classify(manifest, strings, yara, obf, ioc)
+
+        # ── Stage 12: Isolation Forest / Zero-Day (91%) ───────────────────
+        _publish(job_id, {"stage": "anomaly", "pct": 91, "msg": "Running Isolation Forest zero-day detection..."})
+        anomaly_result = anomaly_detector.detect(manifest, strings, yara, obf, ioc)
+
+        # ── Stage 13: MalBERT Zero-Shot (94%) ───────────────────────────
+        _publish(job_id, {"stage": "malbert", "pct": 94, "msg": "MalBERT zero-shot classification..."})
+        malbert_result = malbert_classifier.classify(manifest, yara, obf, strings)
+
+        # ── Stage 14: MITRE ATT&CK Full (96%) ──────────────────────────
+        _publish(job_id, {"stage": "mitre", "pct": 96, "msg": "Mapping 40+ MITRE ATT&CK techniques..."})
+        mitre = mitre_full.get_mitre_tactics(manifest, obf, yara, strings)
+
+        # ── Stage 15: LangChain Agent Verdict (98%) ──────────────────────
+        _publish(job_id, {"stage": "agent", "pct": 98, "msg": "LangChain Agent generating court-grade verdict..."})
+        agent_verdict = langchain_agent.run_agent(
+            manifest=manifest, strings=strings, yara=yara,
+            obfuscation=obf, india_ioc=ioc, risk=risk,
+            xgboost_result=xgb_result, malbert_result=malbert_result,
+            family_result=family_result, anomaly_result=anomaly_result,
         )
+
+        # Use agent court narrative as primary AI narrative
+        ai_text = agent_verdict.get("court_narrative", "")
+        recommendations = agent_verdict.get("recommendations", [])
+        if not ai_text:
+            # Fallback to old narrative generator
+            ai_text, recommendations = _run_async(
+                ai_narrative_module.generate_narrative(manifest, risk, yara, ioc, cert, obf)
+            )
 
         import uuid
         from datetime import datetime, timezone
@@ -148,6 +184,13 @@ def run_analysis_task(self, apk_path: str, filename: str, job_id: str) -> dict:
             "india_ioc": ioc,
             "risk": risk,
             "mitre": mitre,
+            # ── ML Intelligence Layer ─────────────────────────────────────────
+            "ml_classification": family_result,
+            "xgboost": xgb_result,
+            "malbert": malbert_result,
+            "anomaly": anomaly_result,
+            "agent_verdict": agent_verdict,
+            # ── AI Narrative ───────────────────────────────────────────────
             "ai_narrative": ai_text,
             "ai_recommendations": recommendations,
         }
