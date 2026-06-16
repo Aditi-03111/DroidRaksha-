@@ -161,10 +161,11 @@ DroidRaksha/
 │       └── tasks.py              ← 15-stage async analysis pipeline
 ├── frontend/
 │   ├── app/
+│   │   ├── dashboard/page.tsx    ← Analytics dashboard (KPIs, charts, threat feed)
 │   │   ├── results/[id]/page.tsx ← 5-tab results page
 │   │   ├── globals.css
 │   │   ├── layout.tsx
-│   │   └── page.tsx
+│   │   └── page.tsx              ← Landing + APK upload
 │   ├── components/
 │   │   ├── AIExplanation.tsx
 │   │   ├── AnalysisLoader.tsx
@@ -256,8 +257,15 @@ DroidRaksha is built using a modern, scalable, and distributed technology stack,
   - HuggingFace MalBERT zero-shot classification (`facebook/bart-large-mnli`)
   - LangChain ReAct Agent for court-grade verdicts (Gemini Flash)
   - Explainable AI using SHAP values (top-5 feature impact)
+- **P12: Analytics Dashboard** — Full threat intelligence dashboard at `/dashboard`
+  - 6 KPI stat cards (total scans, critical threats, India-targeted, safe, PCAP, YARA)
+  - SVG donut chart for malware family breakdown
+  - Risk distribution bar chart with clean/threat rate
+  - Live threat feed showing recent high-risk APKs
+  - Recent scans table (last 10, clickable rows)
+  - Inline APK upload with compact DropZone
+  - Refresh button and dashboard nav link from home page
 
 ### ⏳ Upcoming
-- **P12: Dashboard** — Global threat map, aggregate stats, scan history
 - **P13: Forensic Reports** — Deep dive forensic reports, call graphs
 - **P15: Deployment** — Dockerization, Kubernetes, AWS migration
