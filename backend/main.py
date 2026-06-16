@@ -40,6 +40,7 @@ app.add_middleware(
         "http://localhost:3000",
         "http://localhost:3001",
         "https://droid-raksha.vercel.app",
+        "https://frontened-nu.vercel.app",
     ],
     allow_credentials=True,
     allow_methods=["*"],

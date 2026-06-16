@@ -64,6 +64,7 @@ export default function Home() {
       <nav className="fixed top-0 left-0 w-full z-50 transition-all duration-300 backdrop-blur-xl border-b border-transparent bg-black/40 py-4">
         <div className="w-full flex justify-between items-center px-6 lg:px-12">
           <Link href="/" className="flex items-center gap-4 relative z-10 group">
+            <img src="/logo.png" alt="DroidRaksha Logo" className="w-8 h-8 object-contain" />
             <span className="tracking-tighter text-xl font-semibold text-white uppercase leading-none hover-scramble">
               DROIDRAKSHA
             </span>
