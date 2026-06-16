@@ -5,9 +5,10 @@ import { Shield, Upload, FileWarning, Loader2, Zap } from "lucide-react";
 interface DropZoneProps {
   onUpload: (file: File) => void;
   isLoading: boolean;
+  compact?: boolean;
 }
 
-export default function DropZone({ onUpload, isLoading }: DropZoneProps) {
+export default function DropZone({ onUpload, isLoading, compact = false }: DropZoneProps) {
   const [isDragging, setIsDragging] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -49,8 +50,9 @@ export default function DropZone({ onUpload, isLoading }: DropZoneProps) {
         onDrop={handleDrop}
         className={`
           relative flex flex-col items-center justify-center gap-4
-          rounded-2xl border-2 border-dashed p-12 cursor-pointer
+          rounded-2xl border-2 border-dashed cursor-pointer
           transition-all duration-300 group select-none
+          ${compact ? "p-5" : "p-12"}
           ${isLoading ? "pointer-events-none opacity-60" : ""}
           ${isDragging
             ? "border-indigo-400 bg-indigo-500/10 scale-[1.01]"
@@ -98,22 +100,24 @@ export default function DropZone({ onUpload, isLoading }: DropZoneProps) {
               </p>
             </div>
 
-            <div className="flex items-center gap-4 text-xs text-slate-500">
-              <span className="flex items-center gap-1.5">
-                <Zap className="w-3 h-3 text-yellow-500" />
-                AI Narrative
-              </span>
-              <span className="w-1 h-1 rounded-full bg-slate-600" />
-              <span className="flex items-center gap-1.5">
-                <Shield className="w-3 h-3 text-indigo-400" />
-                YARA Rules
-              </span>
-              <span className="w-1 h-1 rounded-full bg-slate-600" />
-              <span className="flex items-center gap-1.5">
-                <FileWarning className="w-3 h-3 text-rose-400" />
-                MITRE ATT&CK
-              </span>
-            </div>
+            {!compact && (
+              <div className="flex items-center gap-4 text-xs text-slate-500">
+                <span className="flex items-center gap-1.5">
+                  <Zap className="w-3 h-3 text-yellow-500" />
+                  AI Narrative
+                </span>
+                <span className="w-1 h-1 rounded-full bg-slate-600" />
+                <span className="flex items-center gap-1.5">
+                  <Shield className="w-3 h-3 text-indigo-400" />
+                  YARA Rules
+                </span>
+                <span className="w-1 h-1 rounded-full bg-slate-600" />
+                <span className="flex items-center gap-1.5">
+                  <FileWarning className="w-3 h-3 text-rose-400" />
+                  MITRE ATT&CK
+                </span>
+              </div>
+            )}
           </>
         )}
 

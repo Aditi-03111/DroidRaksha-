@@ -2,7 +2,8 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Shield, ShieldAlert, ShieldCheck, Zap, BarChart3, Activity } from "lucide-react";
+import Link from "next/link";
+import { Shield, ShieldAlert, ShieldCheck, Zap, BarChart3, Activity, LayoutDashboard } from "lucide-react";
 import DropZone from "@/components/DropZone";
 import AnalysisProgress from "@/components/AnalysisProgress";
 import { getStats, uploadApk } from "@/lib/api";
@@ -59,6 +60,17 @@ export default function Home() {
       {/* Background grid */}
       <div className="absolute inset-0 bg-[linear-gradient(to_right,#1f2937_1px,transparent_1px),linear-gradient(to_bottom,#1f2937_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)] -z-10 opacity-30" />
 
+      {/* Dashboard Nav */}
+      <div className="absolute top-6 right-6">
+        <Link
+          href="/dashboard"
+          className="flex items-center gap-2 text-xs font-medium bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700/60 px-4 py-2 rounded-lg transition-all"
+        >
+          <LayoutDashboard className="w-3.5 h-3.5" />
+          Dashboard
+        </Link>
+      </div>
+
       {/* Header */}
       <div className="text-center space-y-4 max-w-3xl animate-fade-in-up">
         <div className="inline-flex items-center gap-2 bg-indigo-500/10 text-indigo-400 px-4 py-1.5 rounded-full text-sm font-semibold border border-indigo-500/20 mb-2">
@@ -77,7 +89,7 @@ export default function Home() {
       {/* Stats Grid */}
       {stats && (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 w-full max-w-4xl animate-fade-in-up delay-100">
-          <StatCard icon={<Activity className="text-indigo-400" />} label="Total Scans" value={stats.total_analyses ?? 0} />
+          <StatCard icon={<Activity className="text-indigo-400" />} label="Total Scans" value={stats.total_analyzed ?? 0} />
           <StatCard icon={<ShieldAlert className="text-rose-400" />} label="Critical Threats" value={(stats.critical_count ?? 0) + (stats.high_count ?? 0)} />
           <StatCard icon={<ShieldCheck className="text-cyan-400" />} label="Safe Apps" value={stats.safe_count ?? 0} />
           <StatCard icon={<BarChart3 className="text-yellow-400" />} label="Rules Active" value="50" />
@@ -124,11 +136,13 @@ export default function Home() {
 
       {/* Footer */}
       <div className="flex flex-col items-center gap-2 text-xs text-slate-600 animate-fade-in-up delay-300">
-        <p>Powered by Androguard · 50 YARA rules · Celery + Redis · Anthropic Claude</p>
+        <p>Powered by Androguard · XGBoost + MalBERT · LangChain · Gemini Flash · 50 YARA rules</p>
         <div className="flex gap-4">
           <span>v2.0.0</span>
           <span>•</span>
-          <span>Confidential & Secure</span>
+          <Link href="/dashboard" className="hover:text-slate-400 transition-colors">Dashboard →</Link>
+          <span>•</span>
+          <span>Confidential &amp; Secure</span>
         </div>
       </div>
     </div>
