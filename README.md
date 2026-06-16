@@ -265,7 +265,19 @@ DroidRaksha is built using a modern, scalable, and distributed technology stack,
   - Recent scans table (last 10, clickable rows)
   - Inline APK upload with compact DropZone
   - Refresh button and dashboard nav link from home page
+- **P13: Deep Forensic PDF Reports** — 10-section court-grade PDF via `GET /api/report/{id}`
+  - Cover page with risk level, package, SHA-256, analysis ID
+  - Executive summary: score breakdown, VT detections, India IOC flags
+  - ML Intelligence: XGBoost + SHAP top-5, MalBERT zero-shot, Isolation Forest
+  - LangChain Agent court verdict + AI narrative + recommendations
+  - MITRE ATT&CK mapping table (all detected techniques)
+  - YARA detections with severity and tags
+  - Permissions analysis (dangerous + combo warnings)
+  - Certificate analysis with expiry and self-sign warnings
+  - Extracted strings & IOCs (high-risk only, first 30)
+  - Network/PCAP section (beaconing, DGA, India IOC hits) — if linked
+  - Obfuscation & packing metrics
+  - Fixed Python 3.14 + SQLAlchemy `Mapped[Optional]` incompatibility
 
 ### ⏳ Upcoming
-- **P13: Forensic Reports** — Deep dive forensic reports, call graphs
 - **P15: Deployment** — Dockerization, Kubernetes, AWS migration
