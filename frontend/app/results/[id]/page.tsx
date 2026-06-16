@@ -18,6 +18,7 @@ import ExportButton from "@/components/ExportButton";
 import APKFileTree from "@/components/APKFileTree";
 import ManifestViewer from "@/components/ManifestViewer";
 import MalwareFamilyBadge from "@/components/MalwareFamilyBadge";
+import NetworkTrafficPanel from "@/components/NetworkTrafficPanel";
 
 export default function ResultsPage() {
   const { id } = useParams() as { id: string };
@@ -25,7 +26,7 @@ export default function ResultsPage() {
   const [result, setResult] = useState<AnalysisResult | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<"overview" | "filetree" | "manifest" | "ml">("overview");
+  const [activeTab, setActiveTab] = useState<"overview" | "filetree" | "manifest" | "ml" | "network">("overview");
 
   useEffect(() => {
     if (!id) return;
@@ -91,7 +92,7 @@ export default function ResultsPage() {
 
       {/* Tab Navigation */}
       <div className="flex gap-1 bg-slate-900/60 rounded-xl p-1 border border-slate-700/40 w-fit overflow-x-auto">
-        {(["overview", "filetree", "manifest", "ml"] as const).map((tab) => (
+        {(["overview", "filetree", "manifest", "ml", "network"] as const).map((tab) => (
           <button
             key={tab}
             id={`tab-${tab}`}
@@ -105,7 +106,8 @@ export default function ResultsPage() {
             {tab === "overview" ? "📊 Analysis"
               : tab === "filetree" ? "🌳 File Tree"
               : tab === "manifest" ? "📋 Manifest"
-              : "🧠 ML Intelligence"}
+              : tab === "ml" ? "🧠 ML Intelligence"
+              : "🌐 Network Traffic"}
           </button>
         ))}
       </div>
@@ -245,6 +247,16 @@ export default function ResultsPage() {
               </div>
             )}
           </div>
+        </div>
+      )}
+
+      {/* 🌐 Network Traffic Tab */}
+      {activeTab === "network" && (
+        <div className="max-w-4xl">
+          <NetworkTrafficPanel
+            analysisId={result.id}
+            initialNetwork={(result as Record<string, unknown>).network as Parameters<typeof NetworkTrafficPanel>[0]["initialNetwork"] ?? null}
+          />
         </div>
       )}
     </div>

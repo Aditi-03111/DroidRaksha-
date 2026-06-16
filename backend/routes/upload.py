@@ -11,7 +11,8 @@ import hashlib
 import os
 import uuid
 
-from fastapi import APIRouter, HTTPException, UploadFile, File
+from fastapi import APIRouter, HTTPException, UploadFile, File, Form
+from typing import Optional
 from loguru import logger
 
 from backend.db import database
@@ -20,11 +21,30 @@ router = APIRouter()
 
 UPLOAD_DIR = os.getenv("UPLOAD_DIR", "./uploads")
 MAX_FILE_SIZE = 700 * 1024 * 1024  # 700 MB
+MAX_PCAP_SIZE = 200 * 1024 * 1024  # 200 MB
 os.makedirs(UPLOAD_DIR, exist_ok=True)
+os.makedirs(os.path.join(UPLOAD_DIR, "pcaps"), exist_ok=True)
 
 
 def _is_apk(filename: str, data: bytes) -> bool:
     return filename.lower().endswith(".apk") and data[:2] == b"PK"
+
+
+def _is_pcap(filename: str, data: bytes) -> bool:
+    """Accept .pcap or .pcapng files by magic bytes."""
+    lower = filename.lower()
+    if not (lower.endswith(".pcap") or lower.endswith(".pcapng")):
+        return False
+    # pcap magic: 0xd4c3b2a1 (LE) or 0xa1b2c3d4 (BE)
+    # pcapng magic: 0x0a0d0d0a
+    if len(data) < 4:
+        return False
+    magic = data[:4]
+    return magic in (
+        b"\xd4\xc3\xb2\xa1", b"\xa1\xb2\xc3\xd4",
+        b"\x4d\x3c\xb2\xa1", b"\xa1\xb2\x3c\x4d",
+        b"\x0a\x0d\x0d\x0a",
+    )
 
 
 @router.post("/upload")
@@ -100,4 +120,70 @@ async def upload_apk(file: UploadFile = File(...)):
         "status": "queued",
         "cached": False,
         "ws_url": f"/api/ws/{job_id}",
+    }
+
+
+@router.post("/upload/pcap")
+async def upload_pcap(
+    file: UploadFile = File(...),
+    analysis_id: Optional[str] = Form(None),
+):
+    """
+    Upload a .pcap or .pcapng file.
+
+    Optional: pass `analysis_id` (an existing APK scan ID) to link the
+    network report to that scan. The network tab on the results page
+    will then show this data alongside the APK analysis.
+
+    Returns: { pcap_id, status, network: <PCAPResult> }
+    """
+    if not file.filename:
+        raise HTTPException(status_code=400, detail="No filename provided")
+
+    data = await file.read()
+
+    if len(data) > MAX_PCAP_SIZE:
+        raise HTTPException(status_code=413, detail="PCAP too large (max 200MB)")
+
+    if not _is_pcap(file.filename, data):
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid file — only .pcap / .pcapng files accepted",
+        )
+
+    # ── Save PCAP ────────────────────────────────────────────────────────────
+    pcap_id   = str(uuid.uuid4())
+    pcap_path = os.path.join(UPLOAD_DIR, "pcaps", f"{pcap_id}.pcap")
+    with open(pcap_path, "wb") as f_out:
+        f_out.write(data)
+    logger.info(f"Saved PCAP → {pcap_path} ({len(data):,} bytes)")
+
+    # ── Run PCAP analysis (sync — fast enough for ≤200MB) ───────────────────
+    from backend.engines import pcap_analyzer
+
+    # If linked to an APK scan, pass its India IOC data for cross-referencing
+    india_ioc_data = None
+    linked_result  = None
+    if analysis_id:
+        linked_result = await database.get_analysis(analysis_id)
+        if linked_result:
+            india_ioc_data = linked_result.get("india_ioc")
+
+    network = pcap_analyzer.analyze(pcap_path, india_ioc_data=india_ioc_data)
+
+    # ── Patch the linked APK result with network data ────────────────────────
+    if linked_result and network.get("available"):
+        linked_result["network"] = network
+        linked_result["pcap_id"] = pcap_id
+        await database.save_analysis(linked_result)
+        logger.info(f"Patched analysis {analysis_id} with PCAP network data")
+
+    # ── Save standalone PCAP record ──────────────────────────────────────────
+    await database.save_pcap_result(pcap_id, file.filename, analysis_id, network)
+
+    return {
+        "pcap_id": pcap_id,
+        "status": "complete",
+        "linked_analysis_id": analysis_id,
+        "network": network,
     }

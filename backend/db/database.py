@@ -38,6 +38,20 @@ class AnalysisRecord(Base):
     )
 
 
+class PCAPRecord(Base):
+    __tablename__ = "pcap_analyses"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    filename: Mapped[str] = mapped_column(String(255))
+    analysis_id: Mapped[Optional[str]] = mapped_column(String(36), nullable=True, index=True)
+    pcap_risk: Mapped[str] = mapped_column(String(20), default="UNKNOWN")
+    result_json: Mapped[str] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc)
+    )
+
+
 async def init_db() -> None:
     """Create tables if they don't exist."""
     async with engine.begin() as conn:
@@ -120,3 +134,39 @@ async def get_stats() -> dict:
             "safe_count": counts.get("SAFE", 0),
             "recent_analyses": recent_list,
         }
+async def save_pcap_result(
+    pcap_id: str,
+    filename: str,
+    analysis_id: Optional[str],
+    network: dict,
+) -> None:
+    """Persist a PCAP analysis result."""
+    async with async_session_factory() as session:
+        record = PCAPRecord(
+            id=pcap_id,
+            filename=filename,
+            analysis_id=analysis_id,
+            pcap_risk=network.get("pcap_risk", "UNKNOWN"),
+            result_json=json.dumps(network),
+        )
+        session.add(record)
+        await session.commit()
+        logger.info(f"Saved PCAP result {pcap_id} to DB")
+
+
+async def get_pcap_result(pcap_id: str) -> Optional[dict]:
+    """Retrieve a PCAP analysis result by ID."""
+    async with async_session_factory() as session:
+        stmt = select(PCAPRecord).where(PCAPRecord.id == pcap_id)
+        row = (await session.execute(stmt)).scalar_one_or_none()
+        if row:
+            return json.loads(row.result_json)
+        return None
+
+
+async def get_pcap_results_for_analysis(analysis_id: str) -> list[dict]:
+    """Get all PCAP results linked to a specific APK analysis."""
+    async with async_session_factory() as session:
+        stmt = select(PCAPRecord).where(PCAPRecord.analysis_id == analysis_id)
+        rows = (await session.execute(stmt)).scalars().all()
+        return [json.loads(r.result_json) for r in rows]
