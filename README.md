@@ -202,7 +202,7 @@ DroidRaksha/
 DroidRaksha is built using a modern, scalable, and distributed technology stack, designed to handle intensive static and dynamic analysis workloads securely.
 
 ### 💻 Client & Gateway
-- **Frontend:** Next.js 14 (App Router) + TypeScript, styled with Tailwind CSS and shadcn/ui. Includes interactive network graphs using D3.js.
+- **Frontend:** Next.js 14 (App Router) + TypeScript, featuring a stark Cyber Terminal Aesthetic using custom Vanilla CSS (glass panels, monospace fonts, `.corner-brackets`). Includes interactive HTML5 Canvas 3D particle meshes for the landing page.
 - **Mobile App:** React Native application for Android users.
 - **Gateway & Real-time:** Nginx reverse proxy with WebSockets for true live analysis progress tracking.
 
@@ -238,46 +238,3 @@ DroidRaksha is built using a modern, scalable, and distributed technology stack,
 - **CI/CD & Monitoring:** Automated deployment via GitHub Actions with Sentry and Grafana for error tracking and metrics monitoring.
 - **Sharing:** Threat intelligence sharing via STIX 2.1 / TAXII exports and a rate-limited Bulk REST API.
 
-## 🗺️ Development Roadmap (Round 2)
-
-### ✅ Completed
-- **P1: Export PDF** — Court-grade threat intelligence PDF reports
-- **P2: File Tree / Manifest Viewer** — Frontend integration for APK contents
-- **P3: PCAP Network Analysis** — Full network traffic analysis engine
-  - DNS queries, HTTP hosts, TLS SNI extraction (no tshark needed)
-  - C2 beaconing detection via inter-arrival jitter analysis
-  - DGA domain detection via Shannon entropy
-  - India IOC cross-reference for IPs and domains
-  - `POST /api/upload/pcap` route with APK scan linking
-  - Premium 🌐 Network Traffic tab with drag-and-drop PCAP upload
-- **P4/P10: Celery / Redis Integration** — Asynchronous task processing with message queues
-- **P11: AI/ML Intelligence Layer**
-  - XGBoost classification on CICMalDroid 2020 dataset (97%+ accuracy)
-  - Isolation Forest for Zero-Day Anomaly detection
-  - HuggingFace MalBERT zero-shot classification (`facebook/bart-large-mnli`)
-  - LangChain ReAct Agent for court-grade verdicts (Gemini Flash)
-  - Explainable AI using SHAP values (top-5 feature impact)
-- **P12: Analytics Dashboard** — Full threat intelligence dashboard at `/dashboard`
-  - 6 KPI stat cards (total scans, critical threats, India-targeted, safe, PCAP, YARA)
-  - SVG donut chart for malware family breakdown
-  - Risk distribution bar chart with clean/threat rate
-  - Live threat feed showing recent high-risk APKs
-  - Recent scans table (last 10, clickable rows)
-  - Inline APK upload with compact DropZone
-  - Refresh button and dashboard nav link from home page
-- **P13: Deep Forensic PDF Reports** — 10-section court-grade PDF via `GET /api/report/{id}`
-  - Cover page with risk level, package, SHA-256, analysis ID
-  - Executive summary: score breakdown, VT detections, India IOC flags
-  - ML Intelligence: XGBoost + SHAP top-5, MalBERT zero-shot, Isolation Forest
-  - LangChain Agent court verdict + AI narrative + recommendations
-  - MITRE ATT&CK mapping table (all detected techniques)
-  - YARA detections with severity and tags
-  - Permissions analysis (dangerous + combo warnings)
-  - Certificate analysis with expiry and self-sign warnings
-  - Extracted strings & IOCs (high-risk only, first 30)
-  - Network/PCAP section (beaconing, DGA, India IOC hits) — if linked
-  - Obfuscation & packing metrics
-  - Fixed Python 3.14 + SQLAlchemy `Mapped[Optional]` incompatibility
-
-### ⏳ Upcoming
-- **P15: Deployment** — Dockerization, Kubernetes, AWS migration

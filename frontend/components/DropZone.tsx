@@ -41,7 +41,7 @@ export default function DropZone({ onUpload, isLoading, compact = false }: DropZ
   };
 
   return (
-    <div className="w-full max-w-2xl mx-auto">
+    <div className="w-full mx-auto">
       <label
         htmlFor="apk-upload"
         onDragEnter={() => setIsDragging(true)}
@@ -50,50 +50,43 @@ export default function DropZone({ onUpload, isLoading, compact = false }: DropZ
         onDrop={handleDrop}
         className={`
           relative flex flex-col items-center justify-center gap-4
-          rounded-2xl border-2 border-dashed cursor-pointer
-          transition-all duration-300 group select-none
+          border border-dashed cursor-pointer
+          transition-all duration-300 group select-none corner-brackets
           ${compact ? "p-5" : "p-12"}
           ${isLoading ? "pointer-events-none opacity-60" : ""}
           ${isDragging
-            ? "border-indigo-400 bg-indigo-500/10 scale-[1.01]"
-            : "border-slate-700 bg-slate-900/50 hover:border-indigo-500/60 hover:bg-indigo-500/5"
+            ? "border-[#0052FF] bg-[rgba(0,82,255,0.05)]"
+            : "border-[#1A1A1A] bg-[#050505] hover:border-[#0052FF] hover:bg-[rgba(0,82,255,0.02)]"
           }
         `}
       >
-        {/* Animated corner accents */}
-        <span className="absolute top-3 left-3 w-4 h-4 border-t-2 border-l-2 border-indigo-500 rounded-tl-md opacity-60" />
-        <span className="absolute top-3 right-3 w-4 h-4 border-t-2 border-r-2 border-indigo-500 rounded-tr-md opacity-60" />
-        <span className="absolute bottom-3 left-3 w-4 h-4 border-b-2 border-l-2 border-indigo-500 rounded-bl-md opacity-60" />
-        <span className="absolute bottom-3 right-3 w-4 h-4 border-b-2 border-r-2 border-indigo-500 rounded-br-md opacity-60" />
-
         {isLoading ? (
           <>
             <div className="relative">
-              <div className="w-16 h-16 rounded-full border-2 border-indigo-500/30 animate-spin-slow border-t-indigo-500" />
-              <Shield className="absolute inset-0 m-auto w-7 h-7 text-indigo-400" />
+              <span className="w-8 h-8 border-2 border-[#0052FF] border-t-transparent rounded-full animate-spin block mb-4"></span>
             </div>
-            <p className="text-slate-300 text-sm font-medium animate-pulse">
-              Scanning APK with AI engines...
+            <p className="text-[#555] text-xs font-mono uppercase tracking-widest animate-pulse">
+              [ SCANNING APK... ]
             </p>
           </>
         ) : (
           <>
             <div
-              className={`w-16 h-16 rounded-2xl flex items-center justify-center transition-all duration-300
-                ${isDragging ? "bg-indigo-500/30 scale-110" : "bg-indigo-500/10 group-hover:bg-indigo-500/20"}`}
+              className={`w-12 h-12 flex items-center justify-center transition-all duration-300 border
+                ${isDragging ? "border-[#0052FF] bg-[rgba(0,82,255,0.1)]" : "border-[#1A1A1A] bg-black group-hover:border-[#0052FF]"}`}
             >
               <Upload
-                className={`w-7 h-7 transition-colors ${isDragging ? "text-indigo-300" : "text-indigo-400"}`}
+                className={`w-5 h-5 transition-colors ${isDragging ? "text-white" : "text-[#777] group-hover:text-white"}`}
               />
             </div>
 
-            <div className="text-center">
-              <p className="text-slate-200 font-semibold text-base">
-                {isDragging ? "Release to scan" : "Drop your APK here"}
+            <div className="text-center font-mono">
+              <p className="text-white uppercase tracking-widest text-sm mb-1">
+                {isDragging ? "[ RELEASE TO SCAN ]" : "[ DROP YOUR APK HERE ]"}
               </p>
-              <p className="text-slate-400 text-sm mt-1">
+              <p className="text-[#555] text-[0.65rem] uppercase tracking-widest">
                 or{" "}
-                <span className="text-indigo-400 underline underline-offset-2">
+                <span className="text-[#0052FF] hover:text-white transition-colors">
                   browse to upload
                 </span>
                 {" "}— max 700 MB
@@ -101,19 +94,14 @@ export default function DropZone({ onUpload, isLoading, compact = false }: DropZ
             </div>
 
             {!compact && (
-              <div className="flex items-center gap-4 text-xs text-slate-500">
-                <span className="flex items-center gap-1.5">
-                  <Zap className="w-3 h-3 text-yellow-500" />
+              <div className="flex flex-wrap justify-center items-center gap-4 text-[0.6rem] text-[#555] uppercase tracking-widest mt-2">
+                <span className="flex items-center gap-1.5 border border-[#1A1A1A] px-2 py-0.5 bg-black">
                   AI Narrative
                 </span>
-                <span className="w-1 h-1 rounded-full bg-slate-600" />
-                <span className="flex items-center gap-1.5">
-                  <Shield className="w-3 h-3 text-indigo-400" />
+                <span className="flex items-center gap-1.5 border border-[#1A1A1A] px-2 py-0.5 bg-black">
                   YARA Rules
                 </span>
-                <span className="w-1 h-1 rounded-full bg-slate-600" />
-                <span className="flex items-center gap-1.5">
-                  <FileWarning className="w-3 h-3 text-rose-400" />
+                <span className="flex items-center gap-1.5 border border-[#1A1A1A] px-2 py-0.5 bg-black">
                   MITRE ATT&CK
                 </span>
               </div>
@@ -132,9 +120,8 @@ export default function DropZone({ onUpload, isLoading, compact = false }: DropZ
       </label>
 
       {error && (
-        <p className="mt-3 text-center text-sm text-rose-400 flex items-center justify-center gap-1.5">
-          <FileWarning className="w-4 h-4" />
-          {error}
+        <p className="mt-4 p-2 bg-[rgba(244,63,94,0.1)] border border-[rgba(244,63,94,0.3)] text-[#f43f5e] text-xs font-mono uppercase tracking-widest text-center">
+          [ ERR: {error} ]
         </p>
       )}
     </div>

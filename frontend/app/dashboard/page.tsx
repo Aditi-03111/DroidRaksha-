@@ -3,39 +3,34 @@
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import {
-  Shield, ShieldAlert, ShieldCheck, Activity, BarChart3,
-  FileSearch, AlertTriangle, Wifi, Globe, Zap, Clock,
-  ChevronRight, RefreshCw, TrendingUp, Users, Radio,
-} from "lucide-react";
+import { ChevronRight, RefreshCw, BarChart3, TrendingUp, Radio, Clock } from "lucide-react";
 import { getStats, uploadApk } from "@/lib/api";
 import type { DashboardStats } from "@/lib/types";
 import DropZone from "@/components/DropZone";
 import AnalysisProgress from "@/components/AnalysisProgress";
 
 // ── Colour helpers ──────────────────────────────────────────────────────────
-
 const RISK_COLORS: Record<string, string> = {
-  CRITICAL: "text-red-400",
-  HIGH:     "text-orange-400",
-  MEDIUM:   "text-yellow-400",
-  LOW:      "text-green-400",
-  SAFE:     "text-cyan-400",
+  CRITICAL: "text-[#f43f5e]",
+  HIGH:     "text-[#f97316]",
+  MEDIUM:   "text-[#fbbf24]",
+  LOW:      "text-[#4ade80]",
+  SAFE:     "text-[#22d3ee]",
 };
 
 const RISK_BG: Record<string, string> = {
-  CRITICAL: "bg-red-500/10 border-red-500/30",
-  HIGH:     "bg-orange-500/10 border-orange-500/30",
-  MEDIUM:   "bg-yellow-500/10 border-yellow-500/30",
-  LOW:      "bg-green-500/10 border-green-500/30",
-  SAFE:     "bg-cyan-500/10 border-cyan-500/30",
+  CRITICAL: "bg-[rgba(244,63,94,0.1)] border-[#f43f5e]",
+  HIGH:     "bg-[rgba(249,115,22,0.1)] border-[#f97316]",
+  MEDIUM:   "bg-[rgba(251,191,36,0.1)] border-[#fbbf24]",
+  LOW:      "bg-[rgba(74,222,128,0.1)] border-[#4ade80]",
+  SAFE:     "bg-[rgba(34,211,238,0.1)] border-[#22d3ee]",
 };
 
 const FAMILY_COLORS: Record<string, string> = {
   BankingTrojan:  "#f43f5e",
   Ransomware:     "#fb923c",
   Spyware:        "#a78bfa",
-  RAT:            "#60a5fa",
+  RAT:            "#0052FF",
   Dropper:        "#f59e0b",
   Adware:         "#34d399",
   SMSMalware:     "#ec4899",
@@ -44,12 +39,11 @@ const FAMILY_COLORS: Record<string, string> = {
   Unknown:        "#475569",
 };
 
-// ── Mini Donut Chart (pure CSS/SVG, no library) ────────────────────────────
-
+// ── Mini Donut Chart ────────────────────────────────────────────────────────
 function DonutChart({ data }: { data: Record<string, number> }) {
   const entries = Object.entries(data).filter(([, v]) => v > 0);
   const total   = entries.reduce((s, [, v]) => s + v, 0);
-  if (total === 0) return <p className="text-slate-500 text-xs text-center py-6">No data yet</p>;
+  if (total === 0) return <p className="text-[#555] font-mono text-xs text-center py-6">[ NO DATA ]</p>;
 
   const R = 60, STROKE = 18, C = 2 * Math.PI * R;
   let offset = 0;
@@ -57,7 +51,7 @@ function DonutChart({ data }: { data: Record<string, number> }) {
   return (
     <div className="flex flex-col items-center gap-4">
       <svg viewBox="0 0 160 160" className="w-40 h-40">
-        <circle cx="80" cy="80" r={R} fill="none" stroke="#1e293b" strokeWidth={STROKE} />
+        <circle cx="80" cy="80" r={R} fill="none" stroke="#111" strokeWidth={STROKE} />
         {entries.map(([label, val]) => {
           const pct  = val / total;
           const dash = pct * C;
@@ -69,7 +63,7 @@ function DonutChart({ data }: { data: Record<string, number> }) {
               key={label}
               cx="80" cy="80" r={R}
               fill="none"
-              stroke={FAMILY_COLORS[label] ?? "#64748b"}
+              stroke={FAMILY_COLORS[label] ?? "#555"}
               strokeWidth={STROKE}
               strokeDasharray={`${dash} ${gap}`}
               strokeDashoffset={0}
@@ -78,16 +72,16 @@ function DonutChart({ data }: { data: Record<string, number> }) {
             />
           );
         })}
-        <text x="80" y="76" textAnchor="middle" className="fill-slate-100" fontSize="20" fontWeight="bold">{total}</text>
-        <text x="80" y="94" textAnchor="middle" className="fill-slate-500" fontSize="9">total</text>
+        <text x="80" y="76" textAnchor="middle" className="fill-white font-mono" fontSize="20" fontWeight="bold">{total}</text>
+        <text x="80" y="94" textAnchor="middle" className="fill-[#555] font-mono uppercase" fontSize="8" letterSpacing="2">TOTAL</text>
       </svg>
 
-      <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 w-full">
+      <div className="grid grid-cols-2 gap-x-4 gap-y-2 w-full">
         {entries.map(([label, val]) => (
-          <div key={label} className="flex items-center gap-1.5">
-            <div className="w-2 h-2 rounded-full shrink-0" style={{ background: FAMILY_COLORS[label] ?? "#64748b" }} />
-            <span className="text-xs text-slate-400 truncate">{label}</span>
-            <span className="text-xs text-slate-500 ml-auto font-mono">{val}</span>
+          <div key={label} className="flex items-center gap-2">
+            <div className="w-1.5 h-1.5 rounded-none shrink-0" style={{ background: FAMILY_COLORS[label] ?? "#555" }} />
+            <span className="text-[0.65rem] text-[#777] font-mono uppercase tracking-wider truncate">{label}</span>
+            <span className="text-[0.65rem] text-white ml-auto font-mono">{val}</span>
           </div>
         ))}
       </div>
@@ -96,29 +90,30 @@ function DonutChart({ data }: { data: Record<string, number> }) {
 }
 
 // ── Risk Bar Chart ──────────────────────────────────────────────────────────
-
 function RiskBars({ stats }: { stats: DashboardStats }) {
   const bars = [
     { label: "Critical", value: stats.critical_count ?? 0, color: "#f43f5e" },
-    { label: "High",     value: stats.high_count    ?? 0, color: "#fb923c" },
+    { label: "High",     value: stats.high_count    ?? 0, color: "#f97316" },
     { label: "Medium",   value: stats.medium_count  ?? 0, color: "#fbbf24" },
-    { label: "Low",      value: stats.low_count     ?? 0, color: "#34d399" },
+    { label: "Low",      value: stats.low_count     ?? 0, color: "#4ade80" },
     { label: "Safe",     value: stats.safe_count    ?? 0, color: "#22d3ee" },
   ];
   const max = Math.max(...bars.map(b => b.value), 1);
 
   return (
-    <div className="space-y-3 pt-2">
+    <div className="space-y-4 pt-2">
       {bars.map(b => (
         <div key={b.label} className="flex items-center gap-3">
-          <span className="text-xs text-slate-400 w-14 shrink-0">{b.label}</span>
-          <div className="flex-1 h-2.5 bg-slate-800 rounded-full overflow-hidden">
+          <span className="text-[0.65rem] font-mono text-[#777] uppercase w-14 shrink-0">{b.label}</span>
+          <div className="flex-1 h-1 bg-[#111] overflow-hidden">
             <div
-              className="h-full rounded-full transition-all duration-1000"
+              className="h-full transition-all duration-1000 relative"
               style={{ width: `${(b.value / max) * 100}%`, background: b.color }}
-            />
+            >
+              <div className="absolute right-0 top-1/2 -translate-y-1/2 w-1 h-1 bg-white shadow-[0_0_5px_#fff]"></div>
+            </div>
           </div>
-          <span className="text-xs font-mono text-slate-400 w-6 text-right">{b.value}</span>
+          <span className="text-xs font-mono text-white w-6 text-right">{b.value}</span>
         </div>
       ))}
     </div>
@@ -126,32 +121,23 @@ function RiskBars({ stats }: { stats: DashboardStats }) {
 }
 
 // ── Stat Card ───────────────────────────────────────────────────────────────
-
 function StatCard({
-  icon, label, value, sub, pulse = false,
+  label, value, pulseColor,
 }: {
-  icon: React.ReactNode; label: string; value: string | number;
-  sub?: string; pulse?: boolean;
+  label: string; value: string | number; pulseColor?: string;
 }) {
   return (
-    <div className="rounded-xl bg-slate-900/60 border border-slate-700/40 p-4 flex flex-col gap-2 hover:border-slate-600/60 transition-colors">
-      <div className="flex items-center justify-between">
-        <div className="w-9 h-9 rounded-lg bg-slate-800/80 flex items-center justify-center">
-          {icon}
-        </div>
-        {pulse && <span className="flex h-2 w-2"><span className="animate-ping absolute inline-flex h-2 w-2 rounded-full bg-red-400 opacity-75" /><span className="relative inline-flex rounded-full h-2 w-2 bg-red-500" /></span>}
+    <div className="bg-[#050505] border border-[#1A1A1A] p-4 corner-brackets group hover:bg-[#080808] transition-colors relative">
+      <div className="flex justify-between items-center mb-2">
+        <div className="text-[0.6rem] font-mono text-[#555] uppercase tracking-widest">{label}</div>
+        {pulseColor && <span className={`w-1.5 h-1.5 rounded-full bg-[${pulseColor}] animate-pulse shadow-[0_0_8px_${pulseColor}]`} />}
       </div>
-      <p className="text-2xl font-bold font-mono text-slate-100">{value}</p>
-      <div>
-        <p className="text-xs font-medium text-slate-300">{label}</p>
-        {sub && <p className="text-xs text-slate-500">{sub}</p>}
-      </div>
+      <div className="text-xl lg:text-3xl font-mono text-white tracking-tight">{value}</div>
     </div>
   );
 }
 
 // ── Recent Scans Table ─────────────────────────────────────────────────────
-
 interface RecentScan {
   id: string; filename: string; package_name: string;
   risk_score: number; risk_level: string; created_at: string;
@@ -159,54 +145,45 @@ interface RecentScan {
 
 function RecentScansTable({ scans }: { scans: RecentScan[] }) {
   if (!scans.length) {
-    return (
-      <div className="text-center py-12 text-slate-500">
-        <FileSearch className="w-10 h-10 mx-auto mb-3 opacity-30" />
-        <p className="text-sm">No scans yet — upload your first APK above!</p>
-      </div>
-    );
+    return <div className="text-center py-12 text-[#555] font-mono text-xs uppercase">[ NO SCANS RECORDED ]</div>;
   }
 
   return (
-    <div className="overflow-x-auto">
+    <div className="overflow-x-auto mt-4">
       <table className="w-full text-sm">
         <thead>
-          <tr className="border-b border-slate-800">
-            <th className="text-left py-3 px-2 text-slate-500 font-medium text-xs uppercase tracking-wider">APK / Package</th>
-            <th className="text-center py-3 px-2 text-slate-500 font-medium text-xs uppercase tracking-wider">Score</th>
-            <th className="text-center py-3 px-2 text-slate-500 font-medium text-xs uppercase tracking-wider">Risk</th>
-            <th className="text-right py-3 px-2 text-slate-500 font-medium text-xs uppercase tracking-wider">Scanned</th>
-            <th className="py-3 px-2" />
+          <tr className="border-b border-[#1A1A1A]">
+            <th className="text-left py-2 px-2 text-[#555] font-mono text-[0.65rem] uppercase tracking-widest">APK / Package</th>
+            <th className="text-center py-2 px-2 text-[#555] font-mono text-[0.65rem] uppercase tracking-widest">Score</th>
+            <th className="text-center py-2 px-2 text-[#555] font-mono text-[0.65rem] uppercase tracking-widest">Risk</th>
+            <th className="text-right py-2 px-2 text-[#555] font-mono text-[0.65rem] uppercase tracking-widest">Scanned</th>
+            <th className="py-2 px-2" />
           </tr>
         </thead>
-        <tbody>
+        <tbody className="font-mono text-xs">
           {scans.map((s) => (
-            <tr key={s.id} className="border-b border-slate-800/50 hover:bg-slate-800/30 transition-colors group">
+            <tr key={s.id} className="border-b border-[#111] hover:bg-[#080808] transition-colors group">
               <td className="py-3 px-2">
-                <p className="text-slate-200 font-medium truncate max-w-xs">{s.filename}</p>
-                <p className="text-xs text-slate-500 font-mono truncate max-w-xs">{s.package_name}</p>
+                <p className="text-[#DDD] truncate max-w-[200px]">{s.filename}</p>
+                <p className="text-[0.65rem] text-[#555] truncate max-w-[200px]">{s.package_name}</p>
               </td>
               <td className="py-3 px-2 text-center">
-                <span className={`text-lg font-bold font-mono ${
-                  s.risk_score >= 70 ? "text-red-400" :
-                  s.risk_score >= 40 ? "text-orange-400" :
-                  s.risk_score >= 20 ? "text-yellow-400" : "text-green-400"
-                }`}>{s.risk_score}</span>
+                <span className={RISK_COLORS[s.risk_level] ?? "text-white"}>{s.risk_score}</span>
               </td>
               <td className="py-3 px-2 text-center">
-                <span className={`text-xs font-bold px-2 py-1 rounded-full border ${RISK_BG[s.risk_level] ?? "bg-slate-800 border-slate-700"} ${RISK_COLORS[s.risk_level] ?? "text-slate-400"}`}>
+                <span className={`text-[0.6rem] px-2 py-0.5 border ${RISK_BG[s.risk_level] ?? "border-[#333] text-[#777]"}`}>
                   {s.risk_level}
                 </span>
               </td>
-              <td className="py-3 px-2 text-right text-xs text-slate-500 font-mono whitespace-nowrap">
+              <td className="py-3 px-2 text-right text-[#555] whitespace-nowrap">
                 {new Date(s.created_at).toLocaleString("en-IN", { dateStyle: "short", timeStyle: "short" })}
               </td>
-              <td className="py-3 px-2">
+              <td className="py-3 px-2 text-right">
                 <Link
                   href={`/results/${s.id}`}
-                  className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1 text-xs text-indigo-400 hover:text-indigo-300"
+                  className="opacity-0 group-hover:opacity-100 transition-opacity text-[#0052FF] hover:text-white flex items-center justify-end gap-1"
                 >
-                  View <ChevronRight className="w-3 h-3" />
+                  [VIEW]
                 </Link>
               </td>
             </tr>
@@ -218,38 +195,27 @@ function RecentScansTable({ scans }: { scans: RecentScan[] }) {
 }
 
 // ── Threat Activity Feed ────────────────────────────────────────────────────
-
 function ThreatFeed({ scans }: { scans: RecentScan[] }) {
   const critical = scans.filter(s => s.risk_level === "CRITICAL" || s.risk_level === "HIGH");
   if (!critical.length) {
-    return (
-      <div className="text-center py-8 text-slate-500 text-xs">
-        <ShieldCheck className="w-8 h-8 mx-auto mb-2 text-green-500/40" />
-        No critical threats in recent history
-      </div>
-    );
+    return <div className="text-center py-8 text-[#555] font-mono text-xs uppercase">[ NO CRITICAL THREATS ]</div>;
   }
   return (
-    <div className="space-y-2">
+    <div className="space-y-1 text-xs font-mono">
       {critical.slice(0, 6).map(s => (
         <Link key={s.id} href={`/results/${s.id}`}
-          className="flex items-start gap-3 p-3 rounded-lg hover:bg-slate-800/50 transition-colors group"
+          className="data-row p-2 border-l-2 flex justify-between transition-all duration-300 border-transparent hover:border-[#f43f5e] hover:bg-[rgba(244,63,94,0.05)] group"
         >
-          <div className={`mt-0.5 w-2 h-2 rounded-full shrink-0 ${s.risk_level === "CRITICAL" ? "bg-red-500" : "bg-orange-500"} animate-pulse`} />
-          <div className="flex-1 min-w-0">
-            <p className="text-sm text-slate-200 truncate font-medium group-hover:text-indigo-300 transition-colors">
-              {s.filename}
-            </p>
-            <p className="text-xs text-slate-500 font-mono truncate">{s.package_name}</p>
+          <div className="flex gap-3">
+            <span className="text-[#555]">[{new Date(s.created_at).toLocaleTimeString('en-IN', { hour12: false })}]</span>
+            <span className="text-[#777] group-hover:text-white truncate max-w-[150px]">{s.filename}</span>
           </div>
-          <span className={`shrink-0 text-xs font-bold ${RISK_COLORS[s.risk_level]}`}>{s.risk_score}</span>
+          <span className={RISK_COLORS[s.risk_level]}>{s.risk_level}</span>
         </Link>
       ))}
     </div>
   );
 }
-
-// ── Upload State ─────────────────────────────────────────────────────────────
 
 type UploadState =
   | { phase: "idle" }
@@ -258,7 +224,6 @@ type UploadState =
   | { phase: "error"; msg: string };
 
 // ── Main Dashboard ──────────────────────────────────────────────────────────
-
 export default function DashboardPage() {
   const router = useRouter();
   const [stats, setStats]       = useState<DashboardStats | null>(null);
@@ -306,184 +271,117 @@ export default function DashboardPage() {
   const familyData  = (stats as Record<string, unknown>)?.family_breakdown as Record<string, number> ?? {};
 
   return (
-    <div className="min-h-screen p-6 md:p-10 max-w-[1400px] mx-auto space-y-8">
+    <div className="min-h-screen bg-black grid-bg relative p-6 md:p-12">
+      <div className="absolute inset-0 bg-gradient-to-b from-transparent to-black pointer-events-none z-0"></div>
 
-      {/* Background */}
-      <div className="fixed inset-0 bg-[linear-gradient(to_right,#1f2937_1px,transparent_1px),linear-gradient(to_bottom,#1f2937_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_80%_60%_at_50%_0%,#000_70%,transparent_100%)] -z-10 opacity-20 pointer-events-none" />
-
-      {/* ── Header ── */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center">
-            <Shield className="w-5 h-5 text-indigo-400" />
-          </div>
+      <div className="max-w-[100rem] mx-auto relative z-10">
+        {/* ── Header ── */}
+        <div className="mb-10 flex flex-col md:flex-row justify-between items-end gap-8 border-b border-[#1A1A1A] pb-6">
           <div>
-            <h1 className="text-2xl font-bold text-slate-100">
-              Droid<span className="bg-gradient-to-r from-indigo-400 to-cyan-400 bg-clip-text text-transparent">Raksha</span>
-            </h1>
-            <p className="text-xs text-slate-500">Threat Intelligence Dashboard</p>
+            <h1 className="text-3xl md:text-5xl font-bold tracking-tighter text-white uppercase mb-2">Command Terminal</h1>
+            <p className="text-[0.65rem] text-[#777] font-mono tracking-widest uppercase">Global Threat Intelligence Overview</p>
+          </div>
+          <div className="flex items-center gap-4">
+            <button
+              onClick={() => fetchStats(true)}
+              disabled={refreshing}
+              className="text-[#555] hover:text-white transition-colors flex items-center gap-2 text-xs font-mono uppercase"
+            >
+              <RefreshCw className={`w-3 h-3 ${refreshing ? "animate-spin" : ""}`} />
+              [ REFRESH ]
+            </button>
+            <Link href="/" className="btn-hex px-6 py-2 text-[0.65rem]">
+              <span className="relative z-10 flex items-center gap-2">HOME <span></span></span>
+            </Link>
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => fetchStats(true)}
-            disabled={refreshing}
-            className="flex items-center gap-2 text-xs text-slate-400 hover:text-slate-200 bg-slate-800/60 hover:bg-slate-800 border border-slate-700/40 px-3 py-2 rounded-lg transition-all"
-          >
-            <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? "animate-spin" : ""}`} />
-            Refresh
-          </button>
-          <Link
-            href="/"
-            className="text-xs bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-lg transition-colors font-medium"
-          >
-            + New Scan
-          </Link>
-        </div>
+        {loading ? (
+          <div className="py-32 flex flex-col items-center justify-center font-mono text-[#555] text-xs uppercase animate-pulse">
+            <span className="mb-4 w-4 h-4 border-2 border-[#0052FF] border-t-transparent rounded-full animate-spin"></span>
+            INITIALIZING TERMINAL...
+          </div>
+        ) : stats ? (
+          <div className="space-y-8">
+            {/* ── KPI Cards ── */}
+            <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-6">
+              <StatCard label="Total Scans" value={stats.total_analyzed ?? 0} />
+              <StatCard label="Critical Threats" value={(stats.critical_count ?? 0) + (stats.high_count ?? 0)} pulseColor="#f43f5e" />
+              <StatCard label="India Targeted" value={(stats as Record<string, unknown>).india_targeted as number ?? 0} />
+              <StatCard label="Safe Apps" value={stats.safe_count ?? 0} />
+              <StatCard label="PCAP Scans" value={(stats as Record<string, unknown>).pcap_scans as number ?? 0} />
+              <StatCard label="YARA Rules" value={50} />
+            </div>
+
+            {/* ── Main Grid ── */}
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+              {/* Left: Upload Terminal */}
+              <div className="lg:col-span-4 bg-[#050505] border border-[#1A1A1A] p-6 corner-brackets flex flex-col">
+                <div className="text-[0.65rem] font-mono text-[#555] uppercase tracking-widest mb-4 pb-2 border-b border-[#111]">
+                  Ingress Node
+                </div>
+                <div className="flex-1">
+                  {uploadState.phase === "progress" ? (
+                    <AnalysisProgress
+                      jobId={uploadState.jobId}
+                      onComplete={handleComplete}
+                      onError={handleError}
+                    />
+                  ) : (
+                    <div className="h-full flex flex-col">
+                      <DropZone onUpload={handleUpload} isLoading={isUploading} compact />
+                      {uploadState.phase === "error" && (
+                        <div className="mt-4 p-2 bg-[rgba(244,63,94,0.1)] border border-[rgba(244,63,94,0.3)] text-[#f43f5e] text-xs font-mono text-center">
+                          ERR: {uploadState.msg}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Middle: Family & Risk */}
+              <div className="lg:col-span-4 flex flex-col gap-6">
+                <div className="bg-[#050505] border border-[#1A1A1A] p-6 corner-brackets">
+                  <div className="text-[0.65rem] font-mono text-[#555] uppercase tracking-widest mb-4 pb-2 border-b border-[#111]">
+                    Malware Families
+                  </div>
+                  <DonutChart data={familyData} />
+                </div>
+                
+                <div className="bg-[#050505] border border-[#1A1A1A] p-6 corner-brackets flex-1">
+                  <div className="text-[0.65rem] font-mono text-[#555] uppercase tracking-widest mb-4 pb-2 border-b border-[#111]">
+                    Risk Distribution
+                  </div>
+                  <RiskBars stats={stats} />
+                </div>
+              </div>
+
+              {/* Right: Live Feed & Scans */}
+              <div className="lg:col-span-4 flex flex-col gap-6">
+                <div className="bg-[#050505] border border-[#1A1A1A] p-6 corner-brackets">
+                  <div className="flex justify-between items-center text-[0.65rem] font-mono uppercase tracking-widest mb-4 pb-2 border-b border-[#111]">
+                    <span className="text-[#555]">Critical Feed</span>
+                    <span className="w-1.5 h-1.5 bg-[#f43f5e] rounded-full animate-ping"></span>
+                  </div>
+                  <ThreatFeed scans={recentScans} />
+                </div>
+
+                <div className="bg-[#050505] border border-[#1A1A1A] p-6 corner-brackets flex-1">
+                  <div className="text-[0.65rem] font-mono text-[#555] uppercase tracking-widest mb-2 pb-2 border-b border-[#111]">
+                    Recent Scans
+                  </div>
+                  <RecentScansTable scans={recentScans.slice(0, 5)} />
+                </div>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="text-center py-20 text-[#f43f5e] font-mono text-xs uppercase">
+            [ ERROR: TERMINAL OFFLINE ]
+          </div>
+        )}
       </div>
-
-      {/* ── Upload in-dashboard ── */}
-      {uploadState.phase === "progress" ? (
-        <div className="rounded-2xl bg-slate-900/60 border border-slate-700/40 p-6">
-          <AnalysisProgress
-            jobId={uploadState.jobId}
-            onComplete={handleComplete}
-            onError={handleError}
-          />
-        </div>
-      ) : (
-        <div className="rounded-2xl bg-slate-900/40 border border-dashed border-slate-700/60 p-5">
-          <DropZone onUpload={handleUpload} isLoading={isUploading} compact />
-          {uploadState.phase === "error" && (
-            <p className="text-center text-xs text-red-400 mt-2">{uploadState.msg}</p>
-          )}
-        </div>
-      )}
-
-      {loading ? (
-        <div className="flex flex-col items-center justify-center py-20 gap-4">
-          <div className="w-10 h-10 rounded-full border-2 border-indigo-500/20 border-t-indigo-500 animate-spin" />
-          <p className="text-slate-500 text-sm">Loading dashboard…</p>
-        </div>
-      ) : stats ? (
-        <>
-          {/* ── KPI Cards ── */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
-            <StatCard
-              icon={<Activity className="w-4 h-4 text-indigo-400" />}
-              label="Total Scans" value={stats.total_analyzed ?? 0}
-              sub="all time"
-            />
-            <StatCard
-              icon={<ShieldAlert className="w-4 h-4 text-red-400" />}
-              label="Critical Threats"
-              value={(stats.critical_count ?? 0) + (stats.high_count ?? 0)}
-              sub="CRITICAL + HIGH"
-              pulse={(stats.critical_count ?? 0) > 0}
-            />
-            <StatCard
-              icon={<Globe className="w-4 h-4 text-orange-400" />}
-              label="India Targeted"
-              value={(stats as Record<string, unknown>).india_targeted as number ?? 0}
-              sub="UPI / banking threats"
-            />
-            <StatCard
-              icon={<ShieldCheck className="w-4 h-4 text-green-400" />}
-              label="Safe Apps" value={stats.safe_count ?? 0}
-              sub="risk score < 20"
-            />
-            <StatCard
-              icon={<Wifi className="w-4 h-4 text-cyan-400" />}
-              label="PCAP Scans"
-              value={(stats as Record<string, unknown>).pcap_scans as number ?? 0}
-              sub="network captures"
-            />
-            <StatCard
-              icon={<Zap className="w-4 h-4 text-yellow-400" />}
-              label="YARA Rules" value={50}
-              sub="active signatures"
-            />
-          </div>
-
-          {/* ── Main Grid ── */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-
-            {/* Left: Family Donut */}
-            <div className="rounded-2xl bg-slate-900/60 border border-slate-700/40 p-5">
-              <div className="flex items-center gap-2 mb-5">
-                <BarChart3 className="w-4 h-4 text-indigo-400" />
-                <h2 className="text-sm font-semibold text-slate-200">Malware Family Breakdown</h2>
-              </div>
-              <DonutChart data={familyData} />
-            </div>
-
-            {/* Middle: Risk Distribution */}
-            <div className="rounded-2xl bg-slate-900/60 border border-slate-700/40 p-5">
-              <div className="flex items-center gap-2 mb-5">
-                <TrendingUp className="w-4 h-4 text-orange-400" />
-                <h2 className="text-sm font-semibold text-slate-200">Risk Distribution</h2>
-              </div>
-              <RiskBars stats={stats} />
-
-              {/* Mini summary */}
-              <div className="mt-6 pt-4 border-t border-slate-800 grid grid-cols-2 gap-3">
-                <div className="text-center">
-                  <p className="text-xl font-bold font-mono text-red-400">
-                    {stats.threats_detected ?? 0}
-                  </p>
-                  <p className="text-xs text-slate-500">Threats detected</p>
-                </div>
-                <div className="text-center">
-                  <p className="text-xl font-bold font-mono text-green-400">
-                    {stats.total_analyzed
-                      ? Math.round(((stats.safe_count ?? 0) / stats.total_analyzed) * 100)
-                      : 0}%
-                  </p>
-                  <p className="text-xs text-slate-500">Clean rate</p>
-                </div>
-              </div>
-            </div>
-
-            {/* Right: Threat Feed */}
-            <div className="rounded-2xl bg-slate-900/60 border border-slate-700/40 p-5">
-              <div className="flex items-center gap-2 mb-4">
-                <Radio className="w-4 h-4 text-red-400" />
-                <h2 className="text-sm font-semibold text-slate-200">Live Threat Feed</h2>
-                <span className="ml-auto text-xs text-slate-500">Recent high-risk</span>
-              </div>
-              <ThreatFeed scans={recentScans} />
-            </div>
-          </div>
-
-          {/* ── Recent Scans Table ── */}
-          <div className="rounded-2xl bg-slate-900/60 border border-slate-700/40 p-5">
-            <div className="flex items-center justify-between mb-5">
-              <div className="flex items-center gap-2">
-                <Clock className="w-4 h-4 text-slate-400" />
-                <h2 className="text-sm font-semibold text-slate-200">Recent Analyses</h2>
-                <span className="text-xs text-slate-600">— last 10</span>
-              </div>
-              <span className="text-xs text-slate-500">{stats.total_analyzed ?? 0} total scans</span>
-            </div>
-            <RecentScansTable scans={recentScans} />
-          </div>
-
-          {/* ── Footer ── */}
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-slate-600 pb-4">
-            <p>Powered by Androguard · XGBoost + MalBERT · LangChain · Gemini Flash · YARA 50+ rules</p>
-            <div className="flex items-center gap-3">
-              <Users className="w-3 h-3" />
-              <span>PHAPGUYZ · DroidRaksha v2.0</span>
-            </div>
-          </div>
-        </>
-      ) : (
-        <div className="text-center py-20 text-slate-500">
-          <AlertTriangle className="w-10 h-10 mx-auto mb-3 opacity-30" />
-          <p>Failed to load dashboard stats.</p>
-        </div>
-      )}
     </div>
   );
 }

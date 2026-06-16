@@ -38,86 +38,140 @@ export default function ResultsPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center gap-4">
-        <div className="relative w-16 h-16">
-          <div className="absolute inset-0 rounded-full border-2 border-indigo-500/20 animate-spin-slow border-t-indigo-500" />
-          <Shield className="absolute inset-0 m-auto w-6 h-6 text-indigo-400 animate-pulse" />
-        </div>
-        <p className="text-slate-400 text-sm font-medium">Retrieving analysis results...</p>
+      <div className="min-h-screen bg-black grid-bg flex flex-col items-center justify-center gap-4">
+        <span className="w-6 h-6 border-2 border-[#0052FF] border-t-transparent rounded-full animate-spin mb-4"></span>
+        <p className="text-[#555] font-mono text-xs uppercase animate-pulse">Retrieving analysis results...</p>
       </div>
     );
   }
 
   if (error || !result) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center gap-4">
-        <div className="w-12 h-12 rounded-full bg-rose-500/10 flex items-center justify-center">
-          <Shield className="w-6 h-6 text-rose-400" />
+      <div className="min-h-screen bg-black grid-bg flex flex-col items-center justify-center gap-4">
+        <div className="bg-[rgba(244,63,94,0.1)] border border-[#f43f5e] p-4 text-[#f43f5e] font-mono text-xs uppercase text-center">
+          <p className="mb-2 font-bold">[ ERROR LOADING RESULTS ]</p>
+          <p>{error || "Analysis not found."}</p>
         </div>
-        <h2 className="text-xl font-semibold text-slate-100">Error Loading Results</h2>
-        <p className="text-slate-400 text-sm max-w-md text-center">{error || "Analysis not found."}</p>
-        <Link href="/" className="mt-2 inline-flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-slate-200 px-4 py-2 rounded-lg text-sm transition-colors">
-          <ArrowLeft className="w-4 h-4" /> Back to Dashboard
+        <Link href="/" className="btn-hex px-6 py-2 mt-4 text-[0.65rem]">
+          <span className="relative z-10 flex items-center gap-2">RETURN TO TERMINAL</span>
         </Link>
       </div>
     );
   }
 
+  const riskColor = result.risk.risk_level === 'CRITICAL' ? '#f43f5e' : 
+                    result.risk.risk_level === 'HIGH' ? '#f97316' : 
+                    result.risk.risk_level === 'MEDIUM' ? '#fbbf24' : 
+                    result.risk.risk_level === 'LOW' ? '#4ade80' : '#22d3ee';
+
   return (
-    <div className="min-h-screen p-6 md:p-12 max-w-7xl mx-auto space-y-8">
-      {/* Navigation & Actions */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <Link href="/" className="w-10 h-10 rounded-full bg-slate-800/50 flex items-center justify-center hover:bg-slate-700 transition-colors border border-white/5">
-            <ArrowLeft className="w-4 h-4 text-slate-300" />
-          </Link>
-          <div>
-            <div className="flex items-center gap-2">
-              <h1 className="text-2xl font-bold text-slate-100 truncate max-w-md">{result.filename}</h1>
-              <span className={`text-xs font-bold px-2 py-0.5 rounded-full risk-badge-${result.risk.risk_level.toLowerCase()}`}>
-                {result.risk.risk_level}
-              </span>
+    <div className="min-h-screen bg-black grid-bg p-6 md:p-12 relative">
+      <div className="absolute inset-0 bg-gradient-to-b from-transparent to-black pointer-events-none z-0"></div>
+      
+      <div className="max-w-[100rem] mx-auto space-y-8 relative z-10">
+        
+        {/* Navigation & Actions */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-[#1A1A1A] pb-6">
+          <div className="flex items-center gap-4">
+            <Link href="/dashboard" className="text-[#555] hover:text-white transition-colors">
+              <ArrowLeft className="w-5 h-5" />
+            </Link>
+            <div>
+              <div className="flex items-center gap-3">
+                <h1 className="text-xl md:text-2xl font-bold text-white uppercase tracking-tighter truncate max-w-md">{result.filename}</h1>
+                <span className={`text-[0.6rem] font-bold px-2 py-0.5 border risk-badge-${result.risk.risk_level.toLowerCase()}`}>
+                  {result.risk.risk_level}
+                </span>
+              </div>
+              <p className="text-[0.65rem] font-mono text-[#555] mt-1 break-all uppercase tracking-widest">
+                SHA-256: {result.hashes.sha256}
+              </p>
             </div>
-            <p className="text-xs font-mono text-slate-500 mt-0.5 break-all">
-              SHA-256: {result.hashes.sha256}
-            </p>
           </div>
+          <ExportButton
+            analysisId={result.id}
+            packageName={result.manifest?.package_name}
+            sha256={result.hashes?.sha256}
+          />
         </div>
-        <ExportButton
-          analysisId={result.id}
-          packageName={result.manifest?.package_name}
-          sha256={result.hashes?.sha256}
-        />
-      </div>
 
-      {/* Tab Navigation */}
-      <div className="flex gap-1 bg-slate-900/60 rounded-xl p-1 border border-slate-700/40 w-fit overflow-x-auto">
-        {(["overview", "filetree", "manifest", "ml", "network"] as const).map((tab) => (
-          <button
-            key={tab}
-            id={`tab-${tab}`}
-            onClick={() => setActiveTab(tab)}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap ${
-              activeTab === tab
-                ? "bg-indigo-600 text-white shadow-lg shadow-indigo-500/20"
-                : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/60"
-            }`}
-          >
-            {tab === "overview" ? "📊 Analysis"
-              : tab === "filetree" ? "🌳 File Tree"
-              : tab === "manifest" ? "📋 Manifest"
-              : tab === "ml" ? "🧠 ML Intelligence"
-              : "🌐 Network Traffic"}
-          </button>
-        ))}
-      </div>
+        {/* Tab Navigation */}
+        <div className="flex gap-2 overflow-x-auto pb-2 border-b border-[#1A1A1A]">
+          {(["overview", "filetree", "manifest", "ml", "network"] as const).map((tab) => (
+            <button
+              key={tab}
+              id={`tab-${tab}`}
+              onClick={() => setActiveTab(tab)}
+              className={`px-4 py-2 text-[0.65rem] font-mono uppercase tracking-widest transition-all whitespace-nowrap border-b-2 ${
+                activeTab === tab
+                  ? "border-[#0052FF] text-[#0052FF] bg-[rgba(0,82,255,0.05)]"
+                  : "border-transparent text-[#555] hover:text-white hover:bg-[#050505]"
+              }`}
+            >
+              {tab === "overview" ? "[ ANALYSIS ]"
+                : tab === "filetree" ? "[ FILE TREE ]"
+                : tab === "manifest" ? "[ MANIFEST ]"
+                : tab === "ml" ? "[ INTELLIGENCE ]"
+                : "[ NETWORK ]"}
+            </button>
+          ))}
+        </div>
 
-      {/* Tab Content */}
-      {activeTab === "overview" && (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-1 space-y-6">
-            <RiskScoreCard risk={result.risk} />
-            {result.ml_classification && (
+        {/* Tab Content */}
+        {activeTab === "overview" && (
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-1 space-y-6">
+              <RiskScoreCard risk={result.risk} />
+              {result.ml_classification && (
+                <MalwareFamilyBadge
+                  mlClassification={result.ml_classification}
+                  xgboost={result.xgboost}
+                  malbert={result.malbert}
+                  anomaly={result.anomaly}
+                  agentVerdict={result.agent_verdict}
+                />
+              )}
+              <AIExplanation narrative={result.ai_narrative} recommendations={result.ai_recommendations} />
+              <CertificateCard cert={result.certificate} />
+            </div>
+            <div className="lg:col-span-2 space-y-6">
+              <div className="bg-[#050505] border border-[#1A1A1A] p-6 corner-brackets grid grid-cols-2 md:grid-cols-4 gap-6">
+                <InfoItem label="Package Name" value={result.manifest.package_name} />
+                <InfoItem label="Version" value={`${result.manifest.version_name} (${result.manifest.version_code})`} />
+                <InfoItem label="Target SDK" value={result.manifest.target_sdk.toString()} />
+                <InfoItem label="File Size" value={`${(result.hashes.file_size / 1024 / 1024).toFixed(2)} MB`} />
+              </div>
+              <MitreTable tactics={result.mitre} />
+              <PermissionTable permissions={result.manifest.permissions} dangerousCombos={result.manifest.dangerous_combos} />
+              <StringsTable strings={result.strings} />
+            </div>
+          </div>
+        )}
+
+        {activeTab === "filetree" && (
+          <div className="space-y-4 max-w-4xl">
+            <p className="text-[0.65rem] font-mono text-[#555] uppercase tracking-widest border-l-2 border-[#1A1A1A] pl-3">
+              Decoded APK structure. Suspicious entries highlighted.
+            </p>
+            <APKFileTree analysisId={result.id} />
+          </div>
+        )}
+
+        {activeTab === "manifest" && (
+          <div className="space-y-4 max-w-5xl">
+            <p className="text-[0.65rem] font-mono text-[#555] uppercase tracking-widest border-l-2 border-[#1A1A1A] pl-3">
+              Decoded AndroidManifest.xml. Dangerous permissions highlighted.
+            </p>
+            <ManifestViewer analysisId={result.id} />
+          </div>
+        )}
+
+        {activeTab === "ml" && (
+          <div className="space-y-6">
+            <p className="text-[0.65rem] font-mono text-[#555] uppercase tracking-widest border-l-2 border-[#1A1A1A] pl-3">
+              Full ML Intelligence Layer results — XGBoost, MalBERT, LangChain Agent.
+            </p>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <MalwareFamilyBadge
                 mlClassification={result.ml_classification}
                 xgboost={result.xgboost}
@@ -125,140 +179,93 @@ export default function ResultsPage() {
                 anomaly={result.anomaly}
                 agentVerdict={result.agent_verdict}
               />
-            )}
-            <AIExplanation narrative={result.ai_narrative} recommendations={result.ai_recommendations} />
-            <CertificateCard cert={result.certificate} />
-          </div>
-          <div className="lg:col-span-2 space-y-6">
-            <div className="card-surface p-6 rounded-2xl grid grid-cols-2 md:grid-cols-4 gap-4">
-              <InfoItem label="Package Name" value={result.manifest.package_name} />
-              <InfoItem label="Version" value={`${result.manifest.version_name} (${result.manifest.version_code})`} />
-              <InfoItem label="Target SDK" value={result.manifest.target_sdk.toString()} />
-              <InfoItem label="File Size" value={`${(result.hashes.file_size / 1024 / 1024).toFixed(2)} MB`} />
-            </div>
-            <MitreTable tactics={result.mitre} />
-            <PermissionTable permissions={result.manifest.permissions} dangerousCombos={result.manifest.dangerous_combos} />
-            <StringsTable strings={result.strings} />
-          </div>
-        </div>
-      )}
 
-      {activeTab === "filetree" && (
-        <div className="space-y-4">
-          <p className="text-sm text-slate-400">
-            Decoded APK file structure. Suspicious entries (hidden DEX payloads, native .so in assets, encrypted binaries) are highlighted in red.
-          </p>
-          <APKFileTree analysisId={result.id} />
-        </div>
-      )}
-
-      {activeTab === "manifest" && (
-        <div className="space-y-4">
-          <p className="text-sm text-slate-400">
-            Decoded <code className="font-mono text-indigo-400">AndroidManifest.xml</code> with syntax highlighting.
-            Dangerous permissions and components are highlighted in red.
-          </p>
-          <ManifestViewer analysisId={result.id} />
-        </div>
-      )}
-
-      {activeTab === "ml" && (
-        <div className="space-y-6">
-          <p className="text-sm text-slate-400">
-            Full ML Intelligence Layer results — XGBoost (CICMalDroid 2020), MalBERT zero-shot,
-            Isolation Forest anomaly detection, and LangChain court-grade verdict.
-          </p>
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <MalwareFamilyBadge
-              mlClassification={result.ml_classification}
-              xgboost={result.xgboost}
-              malbert={result.malbert}
-              anomaly={result.anomaly}
-              agentVerdict={result.agent_verdict}
-            />
-
-            {/* Court Narrative */}
-            {result.agent_verdict?.court_narrative && (
-              <div className="card-surface rounded-2xl p-6 space-y-4">
-                <div className="flex items-center gap-2">
-                  <span className="text-lg">⚖️</span>
-                  <h3 className="font-semibold text-slate-200">Court-Grade Verdict</h3>
-                  <span className="ml-auto text-xs text-slate-500">
-                    Confidence: <span className="text-indigo-400 font-mono">{result.agent_verdict.verdict_confidence}%</span>
-                  </span>
-                </div>
-                <div className="text-sm text-slate-300 leading-relaxed whitespace-pre-wrap">
-                  {result.agent_verdict.court_narrative}
-                </div>
-                {result.agent_verdict.ioc_summary && (
-                  <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/20">
-                    <p className="text-xs font-semibold text-rose-400 mb-1">IOC Summary</p>
-                    <p className="text-xs text-slate-300">{result.agent_verdict.ioc_summary}</p>
+              {/* Court Narrative */}
+              {result.agent_verdict?.court_narrative && (
+                <div className="bg-[#050505] border border-[#1A1A1A] p-6 corner-brackets space-y-4">
+                  <div className="flex items-center gap-2 border-b border-[#111] pb-2">
+                    <h3 className="font-bold text-white uppercase tracking-tight text-sm font-mono">Agent Verdict</h3>
+                    <span className="ml-auto text-[0.65rem] font-mono text-[#555] uppercase">
+                      Confidence: <span className="text-[#0052FF]">{result.agent_verdict.verdict_confidence}%</span>
+                    </span>
                   </div>
-                )}
-              </div>
-            )}
-
-            {/* XGBoost Class Probabilities */}
-            {result.xgboost?.available && (
-              <div className="card-surface rounded-2xl p-6 space-y-4">
-                <h3 className="font-semibold text-slate-200 flex items-center gap-2">
-                  <span>⚡</span> XGBoost Class Probabilities
-                  <span className="text-xs text-slate-500 font-normal ml-auto">MalDroid 2020 · {result.xgboost.inference_ms}ms</span>
-                </h3>
-                {Object.entries(result.xgboost.class_probs)
-                  .sort(([, a], [, b]) => b - a)
-                  .map(([cls, prob]) => (
-                    <div key={cls} className="flex items-center gap-3">
-                      <span className="text-xs text-slate-400 w-28 shrink-0">{cls}</span>
-                      <div className="flex-1 h-2 bg-slate-800 rounded-full overflow-hidden">
-                        <div
-                          className="h-full rounded-full transition-all duration-700"
-                          style={{ width: `${prob * 100}%`, background: prob > 0.5 ? "#f43f5e" : prob > 0.2 ? "#f97316" : "#22d3ee" }}
-                        />
-                      </div>
-                      <span className="text-xs font-mono text-slate-400 w-10 text-right">{(prob * 100).toFixed(1)}%</span>
+                  <div className="text-[0.7rem] font-mono text-[#777] leading-relaxed whitespace-pre-wrap uppercase">
+                    {result.agent_verdict.court_narrative}
+                  </div>
+                  {result.agent_verdict.ioc_summary && (
+                    <div className="p-3 bg-[rgba(244,63,94,0.05)] border border-[rgba(244,63,94,0.2)] mt-4">
+                      <p className="text-[0.65rem] font-mono font-bold text-[#f43f5e] uppercase tracking-widest mb-1">IOC Summary</p>
+                      <p className="text-[0.65rem] font-mono text-[#f43f5e]/80 uppercase">{result.agent_verdict.ioc_summary}</p>
                     </div>
-                  ))}
-              </div>
-            )}
+                  )}
+                </div>
+              )}
 
-            {/* MalBERT all scores */}
-            {result.malbert?.available && (
-              <div className="card-surface rounded-2xl p-6 space-y-4">
-                <h3 className="font-semibold text-slate-200 flex items-center gap-2">
-                  <span>🧠</span> MalBERT Zero-Shot Scores
-                  <span className="text-xs text-slate-500 font-normal ml-auto">{result.malbert.inference_ms}ms</span>
-                </h3>
-                {Object.entries(result.malbert.all_scores)
-                  .sort(([, a], [, b]) => b - a)
-                  .map(([cls, score]) => (
-                    <div key={cls} className="flex items-center gap-3">
-                      <span className="text-xs text-slate-400 w-36 shrink-0 capitalize">{cls}</span>
-                      <div className="flex-1 h-2 bg-slate-800 rounded-full overflow-hidden">
-                        <div
-                          className="h-full rounded-full transition-all duration-700"
-                          style={{ width: `${score * 100}%`, background: score > 0.5 ? "#f43f5e" : score > 0.2 ? "#f97316" : "#22d3ee" }}
-                        />
+              {/* XGBoost Class Probabilities */}
+              {result.xgboost?.available && (
+                <div className="bg-[#050505] border border-[#1A1A1A] p-6 corner-brackets space-y-4">
+                  <h3 className="font-bold text-white uppercase tracking-tight text-sm font-mono flex items-center gap-2 border-b border-[#111] pb-2">
+                    XGBoost Probabilities
+                    <span className="text-[0.65rem] text-[#555] font-normal ml-auto">MalDroid 2020 · {result.xgboost.inference_ms}ms</span>
+                  </h3>
+                  {Object.entries(result.xgboost.class_probs)
+                    .sort(([, a], [, b]) => b - a)
+                    .map(([cls, prob]) => (
+                      <div key={cls} className="flex items-center gap-3">
+                        <span className="text-[0.65rem] font-mono text-[#777] uppercase w-28 shrink-0">{cls}</span>
+                        <div className="flex-1 h-1 bg-[#111] overflow-hidden">
+                          <div
+                            className="h-full transition-all duration-700 relative"
+                            style={{ width: `${prob * 100}%`, background: prob > 0.5 ? "#f43f5e" : prob > 0.2 ? "#f97316" : "#22d3ee" }}
+                          >
+                             <div className="absolute right-0 top-1/2 -translate-y-1/2 w-1 h-1 bg-white shadow-[0_0_5px_#fff]"></div>
+                          </div>
+                        </div>
+                        <span className="text-[0.65rem] font-mono text-white w-10 text-right">{(prob * 100).toFixed(1)}%</span>
                       </div>
-                      <span className="text-xs font-mono text-slate-400 w-10 text-right">{(score * 100).toFixed(1)}%</span>
-                    </div>
-                  ))}
-              </div>
-            )}
+                    ))}
+                </div>
+              )}
+
+              {/* MalBERT all scores */}
+              {result.malbert?.available && (
+                <div className="bg-[#050505] border border-[#1A1A1A] p-6 corner-brackets space-y-4">
+                  <h3 className="font-bold text-white uppercase tracking-tight text-sm font-mono flex items-center gap-2 border-b border-[#111] pb-2">
+                    MalBERT Zero-Shot
+                    <span className="text-[0.65rem] text-[#555] font-normal ml-auto">{result.malbert.inference_ms}ms</span>
+                  </h3>
+                  {Object.entries(result.malbert.all_scores)
+                    .sort(([, a], [, b]) => b - a)
+                    .map(([cls, score]) => (
+                      <div key={cls} className="flex items-center gap-3">
+                        <span className="text-[0.65rem] font-mono text-[#777] uppercase w-36 shrink-0">{cls}</span>
+                        <div className="flex-1 h-1 bg-[#111] overflow-hidden">
+                          <div
+                            className="h-full transition-all duration-700 relative"
+                            style={{ width: `${score * 100}%`, background: score > 0.5 ? "#f43f5e" : score > 0.2 ? "#f97316" : "#22d3ee" }}
+                          >
+                             <div className="absolute right-0 top-1/2 -translate-y-1/2 w-1 h-1 bg-white shadow-[0_0_5px_#fff]"></div>
+                          </div>
+                        </div>
+                        <span className="text-[0.65rem] font-mono text-white w-10 text-right">{(score * 100).toFixed(1)}%</span>
+                      </div>
+                    ))}
+                </div>
+              )}
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* 🌐 Network Traffic Tab */}
-      {activeTab === "network" && (
-        <div className="max-w-4xl">
-          <NetworkTrafficPanel
-            analysisId={result.id}
-            initialNetwork={(result as Record<string, unknown>).network as Parameters<typeof NetworkTrafficPanel>[0]["initialNetwork"] ?? null}
-          />
-        </div>
-      )}
+        {/* 🌐 Network Traffic Tab */}
+        {activeTab === "network" && (
+          <div className="max-w-4xl">
+            <NetworkTrafficPanel
+              analysisId={result.id}
+              initialNetwork={(result as Record<string, unknown>).network as Parameters<typeof NetworkTrafficPanel>[0]["initialNetwork"] ?? null}
+            />
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -266,8 +273,8 @@ export default function ResultsPage() {
 function InfoItem({ label, value }: { label: string; value: string }) {
   return (
     <div className="space-y-1">
-      <p className="text-xs text-slate-500 uppercase tracking-wider">{label}</p>
-      <p className="text-sm font-medium text-slate-200 truncate" title={value}>{value}</p>
+      <p className="text-[0.6rem] font-mono text-[#555] uppercase tracking-widest">{label}</p>
+      <p className="text-sm font-bold text-white truncate font-mono" title={value}>{value}</p>
     </div>
   );
 }
