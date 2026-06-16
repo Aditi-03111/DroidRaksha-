@@ -238,3 +238,29 @@ DroidRaksha is built using a modern, scalable, and distributed technology stack,
 - **CI/CD & Monitoring:** Automated deployment via GitHub Actions with Sentry and Grafana for error tracking and metrics monitoring.
 - **Sharing:** Threat intelligence sharing via STIX 2.1 / TAXII exports and a rate-limited Bulk REST API.
 
+## 🗺️ Roadmap & Task Status
+
+### Phase 1: Project Scaffold & Core Backend [Completed]
+- [x] Create project directory structure, `requirements.txt`, `.env.example`
+- [x] Implement `backend/db/database.py` (SQLite/PostgreSQL)
+- [x] Configure basic YARA rules (`malware.yar`, `india_patterns.yar`)
+- [x] Implement core static analysis engines (Manifest, Strings, Cert, YARA, Obfuscation)
+
+### Phase 2: Threat Intel & API Routes [Completed]
+- [x] Integrate external intel (VirusTotal, AbuseIPDB)
+- [x] Create India-specific IOC engine
+- [x] Implement risk scorer and Claude/Gemini narrative generator
+- [x] Set up FastAPI routes (`/upload`, `/analysis`, `/report`, `/stats`)
+
+### Phase 3: Round 2 Architecture Upgrade [Completed]
+- [x] Migrate to asynchronous Celery workers + Redis Queue
+- [x] Integrate Dockerized MobSF for dynamic sandbox analysis
+- [x] Add PCAP network traffic analysis & Frida hooking
+- [x] Add advanced AI Models: XGBoost, MalBERT, Isolation Forest, LangChain ReAct Agent
+
+### Phase 4: Frontend UI Overhaul [Completed]
+- [x] Migrate Next.js frontend to stark Cyber Terminal aesthetic
+- [x] Implement HTML5 Canvas interactive particle mesh background
+- [x] Build Analytics Dashboard with live feed UI
+- [x] Build Detailed Results Page with terminal-style tabs
+- [x] Create PCAP Upload & Network Analysis panel
