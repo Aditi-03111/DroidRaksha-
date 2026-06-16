@@ -17,6 +17,7 @@ import MitreTable from "@/components/MitreTable";
 import ExportButton from "@/components/ExportButton";
 import APKFileTree from "@/components/APKFileTree";
 import ManifestViewer from "@/components/ManifestViewer";
+import MalwareFamilyBadge from "@/components/MalwareFamilyBadge";
 
 export default function ResultsPage() {
   const { id } = useParams() as { id: string };
@@ -24,7 +25,7 @@ export default function ResultsPage() {
   const [result, setResult] = useState<AnalysisResult | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<"overview" | "filetree" | "manifest">("overview");
+  const [activeTab, setActiveTab] = useState<"overview" | "filetree" | "manifest" | "ml">("overview");
 
   useEffect(() => {
     if (!id) return;
@@ -89,19 +90,22 @@ export default function ResultsPage() {
       </div>
 
       {/* Tab Navigation */}
-      <div className="flex gap-1 bg-slate-900/60 rounded-xl p-1 border border-slate-700/40 w-fit">
-        {(["overview", "filetree", "manifest"] as const).map((tab) => (
+      <div className="flex gap-1 bg-slate-900/60 rounded-xl p-1 border border-slate-700/40 w-fit overflow-x-auto">
+        {(["overview", "filetree", "manifest", "ml"] as const).map((tab) => (
           <button
             key={tab}
             id={`tab-${tab}`}
             onClick={() => setActiveTab(tab)}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap ${
               activeTab === tab
                 ? "bg-indigo-600 text-white shadow-lg shadow-indigo-500/20"
                 : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/60"
             }`}
           >
-            {tab === "overview" ? "📊 Analysis" : tab === "filetree" ? "🌳 File Tree" : "📋 Manifest"}
+            {tab === "overview" ? "📊 Analysis"
+              : tab === "filetree" ? "🌳 File Tree"
+              : tab === "manifest" ? "📋 Manifest"
+              : "🧠 ML Intelligence"}
           </button>
         ))}
       </div>
@@ -111,6 +115,15 @@ export default function ResultsPage() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-1 space-y-6">
             <RiskScoreCard risk={result.risk} />
+            {result.ml_classification && (
+              <MalwareFamilyBadge
+                mlClassification={result.ml_classification}
+                xgboost={result.xgboost}
+                malbert={result.malbert}
+                anomaly={result.anomaly}
+                agentVerdict={result.agent_verdict}
+              />
+            )}
             <AIExplanation narrative={result.ai_narrative} recommendations={result.ai_recommendations} />
             <CertificateCard cert={result.certificate} />
           </div>
@@ -144,6 +157,94 @@ export default function ResultsPage() {
             Dangerous permissions and components are highlighted in red.
           </p>
           <ManifestViewer analysisId={result.id} />
+        </div>
+      )}
+
+      {activeTab === "ml" && (
+        <div className="space-y-6">
+          <p className="text-sm text-slate-400">
+            Full ML Intelligence Layer results — XGBoost (CICMalDroid 2020), MalBERT zero-shot,
+            Isolation Forest anomaly detection, and LangChain court-grade verdict.
+          </p>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <MalwareFamilyBadge
+              mlClassification={result.ml_classification}
+              xgboost={result.xgboost}
+              malbert={result.malbert}
+              anomaly={result.anomaly}
+              agentVerdict={result.agent_verdict}
+            />
+
+            {/* Court Narrative */}
+            {result.agent_verdict?.court_narrative && (
+              <div className="card-surface rounded-2xl p-6 space-y-4">
+                <div className="flex items-center gap-2">
+                  <span className="text-lg">⚖️</span>
+                  <h3 className="font-semibold text-slate-200">Court-Grade Verdict</h3>
+                  <span className="ml-auto text-xs text-slate-500">
+                    Confidence: <span className="text-indigo-400 font-mono">{result.agent_verdict.verdict_confidence}%</span>
+                  </span>
+                </div>
+                <div className="text-sm text-slate-300 leading-relaxed whitespace-pre-wrap">
+                  {result.agent_verdict.court_narrative}
+                </div>
+                {result.agent_verdict.ioc_summary && (
+                  <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/20">
+                    <p className="text-xs font-semibold text-rose-400 mb-1">IOC Summary</p>
+                    <p className="text-xs text-slate-300">{result.agent_verdict.ioc_summary}</p>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* XGBoost Class Probabilities */}
+            {result.xgboost?.available && (
+              <div className="card-surface rounded-2xl p-6 space-y-4">
+                <h3 className="font-semibold text-slate-200 flex items-center gap-2">
+                  <span>⚡</span> XGBoost Class Probabilities
+                  <span className="text-xs text-slate-500 font-normal ml-auto">MalDroid 2020 · {result.xgboost.inference_ms}ms</span>
+                </h3>
+                {Object.entries(result.xgboost.class_probs)
+                  .sort(([, a], [, b]) => b - a)
+                  .map(([cls, prob]) => (
+                    <div key={cls} className="flex items-center gap-3">
+                      <span className="text-xs text-slate-400 w-28 shrink-0">{cls}</span>
+                      <div className="flex-1 h-2 bg-slate-800 rounded-full overflow-hidden">
+                        <div
+                          className="h-full rounded-full transition-all duration-700"
+                          style={{ width: `${prob * 100}%`, background: prob > 0.5 ? "#f43f5e" : prob > 0.2 ? "#f97316" : "#22d3ee" }}
+                        />
+                      </div>
+                      <span className="text-xs font-mono text-slate-400 w-10 text-right">{(prob * 100).toFixed(1)}%</span>
+                    </div>
+                  ))}
+              </div>
+            )}
+
+            {/* MalBERT all scores */}
+            {result.malbert?.available && (
+              <div className="card-surface rounded-2xl p-6 space-y-4">
+                <h3 className="font-semibold text-slate-200 flex items-center gap-2">
+                  <span>🧠</span> MalBERT Zero-Shot Scores
+                  <span className="text-xs text-slate-500 font-normal ml-auto">{result.malbert.inference_ms}ms</span>
+                </h3>
+                {Object.entries(result.malbert.all_scores)
+                  .sort(([, a], [, b]) => b - a)
+                  .map(([cls, score]) => (
+                    <div key={cls} className="flex items-center gap-3">
+                      <span className="text-xs text-slate-400 w-36 shrink-0 capitalize">{cls}</span>
+                      <div className="flex-1 h-2 bg-slate-800 rounded-full overflow-hidden">
+                        <div
+                          className="h-full rounded-full transition-all duration-700"
+                          style={{ width: `${score * 100}%`, background: score > 0.5 ? "#f43f5e" : score > 0.2 ? "#f97316" : "#22d3ee" }}
+                        />
+                      </div>
+                      <span className="text-xs font-mono text-slate-400 w-10 text-right">{(score * 100).toFixed(1)}%</span>
+                    </div>
+                  ))}
+              </div>
+            )}
+          </div>
         </div>
       )}
     </div>

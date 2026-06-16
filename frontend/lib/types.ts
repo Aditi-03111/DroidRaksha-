@@ -140,6 +140,69 @@ export interface MitreTactic {
   name: string;
   tactic: string;
   evidence: string;
+  all_evidence?: string[];
+}
+
+// ── P11 ML Intelligence Layer types ─────────────────────────────────────
+
+export type MalwareFamilyLabel =
+  | "BankingTrojan" | "RAT" | "Spyware" | "Ransomware" | "Adware"
+  | "Dropper" | "SMSStealer" | "FakeApp" | "CryptoMiner"
+  | "Stalkerware" | "ClipboardHijacker" | "Unknown";
+
+export interface SHAPFeature {
+  feature: string;
+  raw_name: string;
+  shap_value: number;
+  direction: "increases" | "decreases";
+}
+
+export interface XGBoostResult {
+  label: "Adware" | "Banking" | "SMS_Malware" | "Riskware" | "Benign" | "unavailable" | "error";
+  probability: number;
+  class_probs: Record<string, number>;
+  shap_top5: SHAPFeature[];
+  available: boolean;
+  inference_ms: number;
+}
+
+export interface MalBERTResult {
+  label: MalwareFamilyLabel | string;
+  raw_label: string;
+  confidence: number;
+  all_scores: Record<string, number>;
+  input_text_preview: string;
+  available: boolean;
+  inference_ms: number;
+}
+
+export interface MLClassification {
+  family: MalwareFamilyLabel;
+  confidence: number;
+  evidence: string[];
+  secondary_families: string[];
+  is_india_targeted: boolean;
+}
+
+export interface AnomalyDetection {
+  is_anomalous: boolean;
+  anomaly_score: number;
+  anomaly_percentile: number;
+  zero_day_risk: "CRITICAL" | "HIGH" | "MEDIUM" | "LOW";
+  explanation: string;
+  model_used: "isolation_forest" | "heuristic";
+  available: boolean;
+  inference_ms: number;
+}
+
+export interface AgentVerdict {
+  court_narrative: string;
+  ioc_summary: string;
+  recommendations: string[];
+  reasoning_steps: string[];
+  verdict_confidence: number;
+  agent_used: string;
+  inference_ms?: number;
 }
 
 export interface AnalysisResult {
@@ -158,6 +221,13 @@ export interface AnalysisResult {
   india_ioc: IndiaIOC;
   risk: Risk;
   mitre: MitreTactic[];
+  // ML Intelligence Layer
+  ml_classification?: MLClassification;
+  xgboost?: XGBoostResult;
+  malbert?: MalBERTResult;
+  anomaly?: AnomalyDetection;
+  agent_verdict?: AgentVerdict;
+  // AI Narrative
   ai_narrative: string;
   ai_recommendations: string[];
 }
