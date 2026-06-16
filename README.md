@@ -126,13 +126,20 @@ The architecture is divided into six primary subsystems working together to anal
 DroidRaksha/
 ├── backend/
 │   ├── ai/
-│   │   └── narrative.py
+│   │   ├── narrative.py          ← Gemini-powered threat narrative
+│   │   ├── classifier.py         ← Rule-based malware family classifier
+│   │   ├── mitre_full.py         ← MITRE ATT&CK 40+ technique mapper
+│   │   ├── xgboost_classifier.py ← XGBoost + SHAP (MalDroid 2020)
+│   │   ├── anomaly_detector.py   ← Isolation Forest zero-day detection
+│   │   ├── malbert_classifier.py ← HuggingFace BART zero-shot
+│   │   └── langchain_agent.py    ← LangChain ReAct Agent (Gemini Flash)
 │   ├── db/
-│   │   └── database.py
+│   │   └── database.py           ← SQLite + AnalysisRecord + PCAPRecord
 │   ├── engines/
 │   │   ├── cert_analyzer.py
 │   │   ├── manifest_parser.py
 │   │   ├── obfuscation.py
+│   │   ├── pcap_analyzer.py      ← PCAP: DNS, HTTP, TLS-SNI, beaconing, DGA
 │   │   ├── static_analyzer.py
 │   │   ├── string_extractor.py
 │   │   └── yara_scanner.py
@@ -146,25 +153,26 @@ DroidRaksha/
 │   │   ├── analysis.py
 │   │   ├── report.py
 │   │   ├── stats.py
-│   │   └── upload.py
-│   ├── main.py
-│   └── scoring/
-│       └── risk_scorer.py
+│   │   └── upload.py             ← POST /upload + POST /upload/pcap
+│   ├── scoring/
+│   │   └── risk_scorer.py
+│   └── worker/
+│       ├── celery_app.py
+│       └── tasks.py              ← 15-stage async analysis pipeline
 ├── frontend/
 │   ├── app/
-│   │   ├── results/
-│   │   │   └── [id]/
-│   │   │       └── page.tsx
+│   │   ├── results/[id]/page.tsx ← 5-tab results page
 │   │   ├── globals.css
 │   │   ├── layout.tsx
 │   │   └── page.tsx
 │   ├── components/
-│   │   ├── ui/
 │   │   ├── AIExplanation.tsx
 │   │   ├── AnalysisLoader.tsx
 │   │   ├── CertificateCard.tsx
 │   │   ├── DropZone.tsx
+│   │   ├── MalwareFamilyBadge.tsx← ML ensemble badge + SHAP chart
 │   │   ├── MitreTable.tsx
+│   │   ├── NetworkTrafficPanel.tsx← PCAP analysis panel + upload zone
 │   │   ├── PermissionTable.tsx
 │   │   ├── RiskScoreCard.tsx
 │   │   └── StringsTable.tsx
@@ -174,9 +182,16 @@ DroidRaksha/
 │   │   └── utils.ts
 │   ├── package.json
 │   └── tsconfig.json
+├── models/
+│   ├── xgboost_maldroid.pkl  ← Trained XGBoost model
+│   ├── isolation_forest.pkl  ← Trained Isolation Forest
+│   └── feature_columns.json  ← Feature name mapping
 ├── rules/
 │   ├── india_patterns.yar
 │   └── malware.yar
+├── scripts/
+│   └── train_xgboost_maldroid.py ← One-time training script (Colab-ready)
+├── uploads/                  ← APK + PCAP storage (gitignored)
 ├── README.md
 └── requirements.txt
 ```
@@ -227,17 +242,22 @@ DroidRaksha is built using a modern, scalable, and distributed technology stack,
 ### ✅ Completed
 - **P1: Export PDF** — Court-grade threat intelligence PDF reports
 - **P2: File Tree / Manifest Viewer** — Frontend integration for APK contents
+- **P3: PCAP Network Analysis** — Full network traffic analysis engine
+  - DNS queries, HTTP hosts, TLS SNI extraction (no tshark needed)
+  - C2 beaconing detection via inter-arrival jitter analysis
+  - DGA domain detection via Shannon entropy
+  - India IOC cross-reference for IPs and domains
+  - `POST /api/upload/pcap` route with APK scan linking
+  - Premium 🌐 Network Traffic tab with drag-and-drop PCAP upload
 - **P4/P10: Celery / Redis Integration** — Asynchronous task processing with message queues
 - **P11: AI/ML Intelligence Layer**
-  - XGBoost classification on CICMalDroid 2020 dataset
+  - XGBoost classification on CICMalDroid 2020 dataset (97%+ accuracy)
   - Isolation Forest for Zero-Day Anomaly detection
-  - HuggingFace MalBERT zero-shot classification
-  - LangChain ReAct Agent for court-grade verdicts
-  - Explainable AI using SHAP values
+  - HuggingFace MalBERT zero-shot classification (`facebook/bart-large-mnli`)
+  - LangChain ReAct Agent for court-grade verdicts (Gemini Flash)
+  - Explainable AI using SHAP values (top-5 feature impact)
 
 ### ⏳ Upcoming
-- **P3: PCAP Analysis** — Network traffic inspection, DNS extraction, live C2 beaconing detection
 - **P12: Dashboard** — Global threat map, aggregate stats, scan history
 - **P13: Forensic Reports** — Deep dive forensic reports, call graphs
 - **P15: Deployment** — Dockerization, Kubernetes, AWS migration
-
