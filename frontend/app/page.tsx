@@ -64,8 +64,15 @@ export default function Home() {
       <nav className="fixed top-0 left-0 w-full z-50 transition-all duration-300 backdrop-blur-xl border-b border-transparent bg-black/40 py-4">
         <div className="w-full flex justify-between items-center px-6 lg:px-12">
           <Link href="/" className="flex items-center gap-4 relative z-10 group">
-            <img src="/logo.png" alt="DroidRaksha Logo" className="w-8 h-8 object-contain" />
-            <span className="tracking-tighter text-xl font-semibold text-white uppercase leading-none hover-scramble">
+            <div className="relative">
+              <div className="absolute inset-0 bg-[#0052FF] blur-md opacity-20 group-hover:opacity-60 transition-opacity"></div>
+              <img 
+                src="/logo.png" 
+                alt="DroidRaksha Logo" 
+                className="w-11 h-11 object-contain mix-blend-screen relative z-10 group-hover:scale-110 transition-transform duration-300" 
+              />
+            </div>
+            <span className="font-mono tracking-[0.2em] text-xl font-bold text-white uppercase leading-none hover-scramble drop-shadow-[0_0_8px_rgba(0,180,255,0.5)]">
               DROIDRAKSHA
             </span>
           </Link>
