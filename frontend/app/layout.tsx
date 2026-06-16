@@ -40,7 +40,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={`${inter.variable} ${jetbrains.variable} dark`}>
-      <body className="min-h-screen bg-[#080b12] text-slate-100 antialiased font-sans">
+      <body className="min-h-screen bg-black text-slate-100 antialiased font-sans">
         {children}
       </body>
     </html>
