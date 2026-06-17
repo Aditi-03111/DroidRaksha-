@@ -218,8 +218,8 @@ DroidRaksha is built using a modern, scalable, and distributed technology stack,
 
 ### 🧠 Threat Intelligence & C2 Detection
 - **AI & ML Intelligence Layer:**
-  - **XGBoost Classifier:** Trained on CICMalDroid 2020 dataset for 5-class malware detection.
-  - **Isolation Forest:** For zero-day anomaly detection.
+  - **XGBoost Classifier:** Trained on the CICMalDroid 2020 dataset for 5-class malware detection. Integrates a preprocessing pipeline using `median_imputer.pkl` and `minmax_scaler.pkl` to scale and clean inputs prior to inference.
+  - **Isolation Forest:** For zero-day anomaly detection. Detects novel, unseen mobile threats that signature/YARA scanners might miss.
   - **MalBERT:** Zero-shot text classification using `facebook/bart-large-mnli` on manifest and rules.
   - **LangChain Agent:** Autonomous ReAct agent (powered by Gemini Flash) synthesizing evidence into court-admissible verdicts.
   - **SHAP Explainability:** Interpretable AI output showing exact feature impact.
