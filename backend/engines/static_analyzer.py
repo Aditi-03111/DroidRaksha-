@@ -84,10 +84,38 @@ async def run(apk_path: str, filename: str) -> dict:
     logger.info("Getting MITRE ATT&CK mapping...")
     mitre = ai_narrative_module.get_mitre_tactics(manifest, obf, yara)
 
-    logger.info("Generating AI narrative...")
+    logger.info("Generating base AI narrative...")
     ai_text, recommendations = await ai_narrative_module.generate_narrative(
         manifest, risk, yara, ioc, cert, obf
     )
+
+    # ── ML Intelligence Layer Fallback (Runs synchronously when Celery is down) ──
+    logger.info("Running synchronous ML intelligence layer...")
+    from backend.ai import (
+        classifier as family_classifier,
+        xgboost_classifier,
+        anomaly_detector,
+        malbert_classifier,
+        langchain_agent,
+    )
+
+    family_result = family_classifier.classify(manifest, strings, yara, obf, ioc, vt)
+    xgb_result = xgboost_classifier.classify(manifest, strings, yara, obf, ioc)
+    anomaly_result = anomaly_detector.detect(manifest, strings, yara, obf, ioc)
+    malbert_result = malbert_classifier.classify(manifest, yara, obf, strings)
+
+    logger.info("Running LangChain Agent...")
+    agent_verdict = langchain_agent.run_agent(
+        manifest=manifest, strings=strings, yara=yara,
+        obfuscation=obf, india_ioc=ioc, risk=risk,
+        xgboost_result=xgb_result, malbert_result=malbert_result,
+        family_result=family_result, anomaly_result=anomaly_result,
+    )
+
+    # Override standard narrative with LangChain agent's narrative if generated
+    if agent_verdict.get("court_narrative"):
+        ai_text = agent_verdict["court_narrative"]
+        recommendations = agent_verdict.get("recommendations", recommendations)
 
     result = {
         "id": analysis_id,
@@ -105,6 +133,13 @@ async def run(apk_path: str, filename: str) -> dict:
         "india_ioc": ioc,
         "risk": risk,
         "mitre": mitre,
+        # ── ML Intelligence Layer ──
+        "ml_classification": family_result,
+        "xgboost": xgb_result,
+        "malbert": malbert_result,
+        "anomaly": anomaly_result,
+        "agent_verdict": agent_verdict,
+        # ── AI Narrative ──
         "ai_narrative": ai_text,
         "ai_recommendations": recommendations,
     }
