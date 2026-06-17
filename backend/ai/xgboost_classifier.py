@@ -21,12 +21,17 @@ import numpy as np
 from loguru import logger
 
 # ── Paths ────────────────────────────────────────────────────────────────────
-BASE_DIR    = Path(__file__).resolve().parents[2]
-MODEL_PATH  = BASE_DIR / "models" / "xgboost_maldroid.pkl"
-FEAT_PATH   = BASE_DIR / "models" / "feature_columns.json"
+BASE_DIR       = Path(__file__).resolve().parents[2]
+MODEL_PATH     = BASE_DIR / "models" / "xgboost_maldroid.pkl"
+FEAT_PATH      = BASE_DIR / "models" / "feature_columns.json"
+IMPUTER_PATH   = BASE_DIR / "models" / "median_imputer.pkl"
+SCALER_PATH    = BASE_DIR / "models" / "minmax_scaler.pkl"
+LABEL_MAP_PATH = BASE_DIR / "models" / "label_map.json"
 
 # ── Lazy-loaded globals ───────────────────────────────────────────────────────
-_model   = None
+_model    = None
+_imputer  = None
+_scaler   = None
 _explainer = None
 _feature_columns: Optional[list[str]] = None
 
@@ -192,18 +197,31 @@ def extract_maldroid_features(
 # ── Model loading ─────────────────────────────────────────────────────────────
 
 def _load_model():
-    global _model, _explainer, _feature_columns
+    global _model, _imputer, _scaler, _explainer, _feature_columns
     if _model is not None:
         return True
 
     if not MODEL_PATH.exists():
-        logger.warning(f"XGBoost model not found at {MODEL_PATH}. Run scripts/train_xgboost_maldroid.py first.")
+        logger.warning(f"XGBoost model not found at {MODEL_PATH}. Run the training script first.")
         return False
 
     try:
         import joblib
         _model = joblib.load(MODEL_PATH)
         logger.info("XGBoost model loaded successfully.")
+
+        # Load preprocessing pipeline artifacts (produced by model training.py)
+        if IMPUTER_PATH.exists():
+            _imputer = joblib.load(IMPUTER_PATH)
+            logger.info("Median imputer loaded.")
+        else:
+            logger.warning(f"Imputer not found at {IMPUTER_PATH} — skipping imputation.")
+
+        if SCALER_PATH.exists():
+            _scaler = joblib.load(SCALER_PATH)
+            logger.info("MinMax scaler loaded.")
+        else:
+            logger.warning(f"Scaler not found at {SCALER_PATH} — skipping scaling.")
 
         if FEAT_PATH.exists():
             with open(FEAT_PATH) as f:
@@ -310,6 +328,15 @@ def classify(
 
     try:
         features = extract_maldroid_features(manifest, strings, yara, obfuscation, india_ioc)
+
+        # Apply preprocessing pipeline if available (matches training-time transforms)
+        if _imputer is not None:
+            feat_arr = features.copy()
+            feat_arr[np.isinf(feat_arr)] = np.nan
+            features = _imputer.transform(feat_arr)
+        if _scaler is not None:
+            features = _scaler.transform(features)
+
         proba    = _model.predict_proba(features)[0]          # shape (n_classes,)
         pred_idx = int(np.argmax(proba))
         label    = CLASSES[pred_idx]
