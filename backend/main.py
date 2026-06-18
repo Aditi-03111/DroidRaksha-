@@ -11,7 +11,7 @@ from dotenv import load_dotenv
 from loguru import logger
 
 from backend.db.database import init_db
-from backend.routes import upload, analysis, report, stats, websocket
+from backend.routes import upload, analysis, report, stats, websocket, sandbox
 
 load_dotenv()
 
@@ -53,6 +53,7 @@ app.include_router(analysis.router, prefix="/api", tags=["Analysis"])
 app.include_router(report.router, prefix="/api", tags=["Reports"])
 app.include_router(stats.router, prefix="/api", tags=["Dashboard"])
 app.include_router(websocket.router, prefix="/api", tags=["WebSocket"])
+app.include_router(sandbox.router, prefix="/api", tags=["Sandbox"])
 
 
 @app.get("/health")
@@ -63,4 +64,4 @@ async def health():
 if __name__ == "__main__":
     import uvicorn
     port = int(os.getenv("BACKEND_PORT", "8000"))
-    uvicorn.run("backend.main:app", host="0.0.0.0", port=port, reload=True)
+    uvicorn.run("backend.main:app", host="0.0.0.0", port=port, reload=True, reload_dirs=["backend"])

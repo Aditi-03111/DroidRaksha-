@@ -117,6 +117,22 @@ async def run(apk_path: str, filename: str) -> dict:
         ai_text = agent_verdict["court_narrative"]
         recommendations = agent_verdict.get("recommendations", recommendations)
 
+    # ── Frida Offline Sandbox ──────────────────────────────────────────────────
+    logger.info("Running sandbox engine (Docker / Frida offline)...")
+    from backend.engines import sandbox_engine
+    try:
+        sandbox_result = sandbox_engine.run(apk_path)
+    except Exception as e:
+        sandbox_result = {"sandbox_available": False, "error": str(e)}
+
+    # ── MobSF Static API ───────────────────────────────────────────────────
+    logger.info("Running MobSF static analysis...")
+    from backend.engines import mobsf_client
+    try:
+        mobsf_result = await mobsf_client.analyze(apk_path)
+    except Exception as e:
+        mobsf_result = {"available": False, "error": str(e)}
+
     result = {
         "id": analysis_id,
         "status": "complete",
@@ -142,6 +158,9 @@ async def run(apk_path: str, filename: str) -> dict:
         # ── AI Narrative ──
         "ai_narrative": ai_text,
         "ai_recommendations": recommendations,
+        # ── Dynamic Sandbox ──
+        "dynamic": sandbox_result,
+        "mobsf": mobsf_result,
     }
 
     logger.info(f"Analysis complete: {analysis_id} | Risk: {risk['risk_level']} ({risk['score']}/100)")

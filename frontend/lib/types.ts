@@ -205,6 +205,73 @@ export interface AgentVerdict {
   inference_ms?: number;
 }
 
+// ── Dynamic Sandbox types ─────────────────────────────────────────────────
+
+export interface ApiHit {
+  api: string;
+  file: string;
+  severity: "CRITICAL" | "HIGH" | "MEDIUM";
+}
+
+export interface BehavioralScore {
+  score: number;
+  level: "CRITICAL" | "HIGH" | "MEDIUM" | "LOW" | "SAFE";
+  flags: string[];
+  summary: string;
+}
+
+export interface SmaliAnalysis {
+  smali_file_count: number;
+  total_methods: number;
+  critical_apis: ApiHit[];
+  high_apis: ApiHit[];
+  medium_apis: ApiHit[];
+  crypto_usage: Record<string, string[]>;
+  antianalysis: Record<string, Array<{ file: string; match: string }>>;
+  sensitive_data: Record<string, Array<{ file: string; snippet: string }>>;
+  dynamic_loading: string[];
+  native_libs: string[];
+  reflection_calls: string[];
+  network_endpoints: string[];
+}
+
+export interface DynamicSandbox {
+  sandbox_available: boolean;
+  engine?: string;
+  analysis_time_sec?: number;
+  behavioral_score?: BehavioralScore;
+  smali_analysis?: SmaliAnalysis;
+  manifest?: Record<string, unknown>;
+  resources?: {
+    total_assets: number;
+    suspicious_assets: string[];
+    embedded_executables: string[];
+    hidden_dex: string[];
+  };
+  error?: string;
+}
+
+export interface MobSFFinding {
+  title: string;
+  severity: "CRITICAL" | "HIGH" | "MEDIUM" | "LOW" | "INFO";
+  desc: string;
+  files: string[];
+}
+
+export interface MobSFResult {
+  available: boolean;
+  app_name?: string;
+  package_name?: string;
+  version_name?: string;
+  security_score?: number;
+  dangerous_perms?: Array<{ name: string; status: string; info: string }>;
+  findings?: MobSFFinding[];
+  urls?: string[];
+  emails?: string[];
+  apkid?: Record<string, unknown>;
+  error?: string;
+}
+
 export interface AnalysisResult {
   id: string;
   status: "complete" | "pending" | "error";
@@ -230,7 +297,11 @@ export interface AnalysisResult {
   // AI Narrative
   ai_narrative: string;
   ai_recommendations: string[];
+  // Network
   network?: any;
+  // Dynamic Sandbox
+  dynamic?: DynamicSandbox;
+  mobsf?: MobSFResult;
 }
 
 export interface DashboardStats {

@@ -143,18 +143,35 @@ def run_analysis_task(self, apk_path: str, filename: str, job_id: str) -> dict:
         _publish(job_id, {"stage": "malbert", "pct": 94, "msg": "MalBERT zero-shot classification..."})
         malbert_result = malbert_classifier.classify(manifest, yara, obf, strings)
 
-        # ── Stage 14: MITRE ATT&CK Full (96%) ──────────────────────────
-        _publish(job_id, {"stage": "mitre", "pct": 96, "msg": "Mapping 40+ MITRE ATT&CK techniques..."})
+        # ── Stage 14: MITRE ATT&CK Full (90%) ──────────────────────────
+        _publish(job_id, {"stage": "mitre", "pct": 90, "msg": "Mapping 40+ MITRE ATT&CK techniques..."})
         mitre = mitre_full.get_mitre_tactics(manifest, obf, yara, strings)
 
-        # ── Stage 15: LangChain Agent Verdict (98%) ──────────────────────
-        _publish(job_id, {"stage": "agent", "pct": 98, "msg": "LangChain Agent generating court-grade verdict..."})
+        # ── Stage 15: LangChain Agent Verdict (93%) ──────────────────────
+        _publish(job_id, {"stage": "agent", "pct": 93, "msg": "LangChain Agent generating court-grade verdict..."})
         agent_verdict = langchain_agent.run_agent(
             manifest=manifest, strings=strings, yara=yara,
             obfuscation=obf, india_ioc=ioc, risk=risk,
             xgboost_result=xgb_result, malbert_result=malbert_result,
             family_result=family_result, anomaly_result=anomaly_result,
         )
+
+        # ── Stage 16: Frida Offline Sandbox (96%) ────────────────────────
+        _publish(job_id, {"stage": "sandbox", "pct": 96, "msg": "Running Docker sandbox (Frida offline analysis)..."})
+        from backend.engines import sandbox_engine
+        try:
+            sandbox_result = sandbox_engine.run(apk_path)
+        except Exception as sandbox_err:
+            sandbox_result = {"sandbox_available": False, "error": str(sandbox_err)}
+
+        # ── Stage 17: MobSF Static API (98%) ─────────────────────────────
+        _publish(job_id, {"stage": "mobsf", "pct": 98, "msg": "MobSF static deep-scan..."})
+        from backend.engines import mobsf_client
+        try:
+            import asyncio as _asyncio
+            mobsf_result = _run_async(mobsf_client.analyze(apk_path))
+        except Exception as mobsf_err:
+            mobsf_result = {"available": False, "error": str(mobsf_err)}
 
         # Use agent court narrative as primary AI narrative
         ai_text = agent_verdict.get("court_narrative", "")
@@ -193,6 +210,9 @@ def run_analysis_task(self, apk_path: str, filename: str, job_id: str) -> dict:
             # ── AI Narrative ───────────────────────────────────────────────
             "ai_narrative": ai_text,
             "ai_recommendations": recommendations,
+            # ── Dynamic Sandbox ────────────────────────────────────────────
+            "dynamic": sandbox_result,
+            "mobsf": mobsf_result,
         }
 
         # ── Save to DB (99%) ──────────────────────────────────────────────

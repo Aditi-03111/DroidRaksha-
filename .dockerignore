@@ -1,0 +1,10 @@
+.git
+.venv
+node_modules
+**/node_modules
+frontend/.next
+frontend/out
+uploads/*
+*.db
+*.apk
+*.log

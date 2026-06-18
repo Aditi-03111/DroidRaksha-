@@ -1,0 +1,102 @@
+version: "3.9"
+
+# DroidRaksha — Full Stack Docker Compose
+# =========================================
+# Services:
+#   backend  — FastAPI (port 8000)
+#   mobsf    — MobSF static analysis (port 8008) [optional]
+#   redis    — Redis broker for Celery (port 6379) [optional]
+#   worker   — Celery worker [optional, needs Redis]
+#
+# Quickstart (backend + MobSF only):
+#   docker-compose up backend mobsf -d
+#
+# Full stack:
+#   docker-compose up -d
+
+services:
+
+  # ── MobSF Static Analyzer ─────────────────────────────────────────────────
+  mobsf:
+    image: opensecurity/mobile-security-framework-mobsf:latest
+    container_name: droidraksha-mobsf
+    ports:
+      - "8008:8000"     # MobSF web UI + REST API
+    volumes:
+      - mobsf_data:/home/mobsf/.MobSF
+    environment:
+      - MOBSF_API_KEY_STATIC=${MOBSF_API_KEY:-droidraksha}
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ── Redis Broker ──────────────────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: droidraksha-redis
+    ports:
+      - "6379:6379"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # ── FastAPI Backend ───────────────────────────────────────────────────────
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: droidraksha-backend
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./uploads:/app/uploads
+      - ./droidraksha.db:/app/droidraksha.db
+      - /var/run/docker.sock:/var/run/docker.sock   # Allow sandbox to spawn containers
+    environment:
+      - DATABASE_URL=sqlite+aiosqlite:///./droidraksha.db
+      - UPLOAD_DIR=./uploads
+      - REDIS_URL=redis://redis:6379/0
+      - MOBSF_URL=http://mobsf:8000
+      - MOBSF_API_KEY=${MOBSF_API_KEY:-droidraksha}
+      - SANDBOX_IMAGE=droidraksha-sandbox:latest
+      - SANDBOX_ENABLED=true
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - VIRUSTOTAL_API_KEY=${VIRUSTOTAL_API_KEY}
+      - ABUSEIPDB_API_KEY=${ABUSEIPDB_API_KEY}
+    depends_on:
+      - redis
+      - mobsf
+    restart: unless-stopped
+
+  # ── Celery Worker ─────────────────────────────────────────────────────────
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: droidraksha-worker
+    command: celery -A backend.worker.celery_app worker --loglevel=info -Q analysis -c 2
+    volumes:
+      - ./uploads:/app/uploads
+      - ./droidraksha.db:/app/droidraksha.db
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      - DATABASE_URL=sqlite+aiosqlite:///./droidraksha.db
+      - UPLOAD_DIR=./uploads
+      - REDIS_URL=redis://redis:6379/0
+      - MOBSF_URL=http://mobsf:8000
+      - MOBSF_API_KEY=${MOBSF_API_KEY:-droidraksha}
+      - SANDBOX_IMAGE=droidraksha-sandbox:latest
+      - SANDBOX_ENABLED=true
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+    depends_on:
+      - redis
+    restart: unless-stopped
+
+volumes:
+  mobsf_data:

@@ -111,86 +111,57 @@ def extract_maldroid_features(
     yara: dict,
     obfuscation: dict,
     india_ioc: dict | None = None,
+    apk_path: str | None = None,
 ) -> np.ndarray:
     """
     Extract a feature vector compatible with CICMalDroid 2020.
-    Returns shape (1, N) for XGBoost predict.
+    Returns shape (1, 470) for XGBoost predict.
     """
-    feat: dict[str, float] = {f: 0.0 for f in ALL_FEATURES}
+    global _feature_columns
+    _load_model()  # Ensure models/feature_columns.json is loaded
 
-    # Permissions
-    perm_names = {
-        p.get("name", "").split(".")[-1].upper()
-        for p in manifest.get("permissions", [])
-    }
-    for p in KNOWN_PERMISSIONS:
-        feat[f"perm_{p}"] = 1.0 if p in perm_names else 0.0
+    if _feature_columns is None:
+        logger.warning("No feature columns loaded. Returning 470 zeros.")
+        return np.zeros((1, 470), dtype=np.float32)
 
-    # API call indicators from obfuscation flags
-    obf = obfuscation or {}
-    feat["api_dex_classloader"]   = 1.0 if obf.get("has_dex_classloader")    else 0.0
-    feat["api_reflection"]        = 1.0 if obf.get("has_reflection")          else 0.0
-    feat["api_string_encryption"] = 1.0 if obf.get("has_string_encryption")   else 0.0
-    feat["api_native_code"]       = 1.0 if obf.get("has_native_code")         else 0.0
+    feat = {f: 0.0 for f in _feature_columns}
 
-    # API hints from suspicious strings
-    str_vals = " ".join(
-        s.get("value", "").lower()
-        for key in ("suspicious_strings", "urls")
-        for s in strings.get(key, [])
-    )
-    feat["api_runtime_exec"]       = 1.0 if "runtime" in str_vals or "exec(" in str_vals else 0.0
-    feat["api_getimei"]            = 1.0 if "getimei" in str_vals else 0.0
-    feat["api_getsimserialnum"]    = 1.0 if "getsimserial" in str_vals else 0.0
-    feat["api_getdeviceid"]        = 1.0 if "getdeviceid" in str_vals else 0.0
-    feat["api_getaccounts"]        = 1.0 if "getaccounts" in str_vals else 0.0
-    feat["api_sendtextmessage"]    = 1.0 if "sendtextmessage" in str_vals else 0.0
-    feat["api_base64decode"]       = 1.0 if "base64" in str_vals else 0.0
-    feat["api_cipher_init"]        = 1.0 if "cipher" in str_vals or "aes" in str_vals else 0.0
-    feat["api_mediarecorder_start"]= 1.0 if "mediarecorder" in str_vals else 0.0
-    feat["api_camera_open"]        = 1.0 if "camera.open" in str_vals else 0.0
-    feat["api_httpurlconnection"]  = 1.0 if "httpurlconnection" in str_vals or "okhttp" in str_vals else 0.0
-    feat["api_secretkeyspec"]      = 1.0 if "secretkeyspec" in str_vals else 0.0
+    if apk_path and os.path.exists(apk_path):
+        try:
+            from androguard.misc import AnalyzeAPK
+            from collections import Counter
+            
+            logger.info(f"Extracting 470 features from APK for ML models...")
+            a, d, dx = AnalyzeAPK(apk_path)
+            
+            all_dex_strings = []
+            for dex in d:
+                for s in dex.get_strings():
+                    all_dex_strings.append(str(s))
+                    
+            string_counts = Counter(all_dex_strings)
+            
+            # Count occurrences of method/syscall names referenced or defined
+            for method in dx.get_methods():
+                string_counts[method.name] += 1
+                
+            # Count permissions
+            perms = {p.get("name", "").split(".")[-1] for p in manifest.get("permissions", [])}
+            for p in perms:
+                string_counts[p] += 1
+                
+            # Map values to the 470 columns
+            for f in _feature_columns:
+                feat[f] = float(string_counts.get(f, 0.0))
+                
+            logger.info("Successfully extracted 470 features using androguard.")
+        except Exception as e:
+            logger.warning(f"Androguard feature extraction failed: {e}. Using zero/default fallback.")
+    else:
+        logger.warning("No apk_path provided to extract_maldroid_features. Using fallback values.")
 
-    # Remaining API features default to 0 (not extractable without dex analysis)
-
-    # Intent / component features
-    services   = set(s.lower() for s in manifest.get("services", []))
-    receivers  = set(r.lower() for r in manifest.get("receivers", []))
-    feat["has_boot_receiver"]          = 1.0 if "RECEIVE_BOOT_COMPLETED" in perm_names else 0.0
-    feat["has_sms_receiver"]           = 1.0 if "RECEIVE_SMS" in perm_names else 0.0
-    feat["has_call_receiver"]          = 1.0 if "PROCESS_OUTGOING_CALLS" in perm_names else 0.0
-    feat["has_admin_receiver"]         = 1.0 if "BIND_DEVICE_ADMIN" in perm_names else 0.0
-    feat["has_notification_listener"]  = 1.0 if "BIND_NOTIFICATION_LISTENER_SERVICE" in perm_names else 0.0
-    feat["has_accessibility_service"]  = 1.0 if "BIND_ACCESSIBILITY_SERVICE" in perm_names else 0.0
-    feat["has_vpn_service"]            = 1.0 if "BIND_VPN_SERVICE" in perm_names else 0.0
-    feat["has_foreground_service"]     = 1.0 if "FOREGROUND_SERVICE" in perm_names else 0.0
-    feat["has_device_admin"]           = 1.0 if "BIND_DEVICE_ADMIN" in perm_names else 0.0
-
-    # Numeric features
-    feat["obfuscation_score"]       = float(obf.get("score", 0)) / 100.0
-    feat["dangerous_combo_count"]   = float(len(manifest.get("dangerous_combos", [])))
-    yara_matches = yara.get("matches", [])
-    feat["yara_critical_count"] = float(sum(1 for m in yara_matches if m.get("severity") == "CRITICAL"))
-    feat["yara_high_count"]     = float(sum(1 for m in yara_matches if m.get("severity") == "HIGH"))
-    feat["yara_medium_count"]   = float(sum(1 for m in yara_matches if m.get("severity") == "MEDIUM"))
-    feat["yara_low_count"]      = float(sum(1 for m in yara_matches if m.get("severity") == "LOW"))
-
-    ioc = india_ioc or {}
-    india_score = (
-        (20 if ioc.get("is_fake_upi") else 0) +
-        (20 if ioc.get("is_fake_bank") else 0) +
-        (15 if ioc.get("is_loan_scam") else 0) +
-        len(ioc.get("matched_ips", [])) * 5 +
-        len(ioc.get("matched_domains", [])) * 5
-    )
-    feat["india_ioc_score"]          = float(min(100, india_score)) / 100.0
-    feat["url_count"]                = float(min(50, len(strings.get("urls", []))))
-    feat["ip_count"]                 = float(min(50, len(strings.get("ips", []))))
-    feat["suspicious_string_count"]  = float(min(100, len(strings.get("suspicious_strings", []))))
-
-    # Build ordered numpy array
-    vector = np.array([[feat[f] for f in ALL_FEATURES]], dtype=np.float32)
+    # Build ordered numpy array matching feature columns
+    vector = np.array([[feat[f] for f in _feature_columns]], dtype=np.float32)
     return vector
 
 
@@ -249,8 +220,8 @@ def _get_shap_explanation(feature_vector: np.ndarray, pred_class_idx: int) -> li
     """
     Returns top-5 SHAP features driving the predicted class.
     """
-    global _explainer
-    if _explainer is None:
+    global _explainer, _feature_columns
+    if _explainer is None or _feature_columns is None:
         return []
 
     try:
@@ -261,7 +232,6 @@ def _get_shap_explanation(feature_vector: np.ndarray, pred_class_idx: int) -> li
         # Older versions return list of (n_samples, n_features) per class
         sv = np.array(shap_values)
         if sv.ndim == 3 and sv.shape[-1] > 1:
-            # Shape: (n_samples, n_features, n_classes) → pick class slice
             class_shap = sv[0, :, pred_class_idx]
         elif sv.ndim == 3:
             class_shap = sv[0, :, 0]
@@ -272,7 +242,7 @@ def _get_shap_explanation(feature_vector: np.ndarray, pred_class_idx: int) -> li
 
         # Pair feature names with SHAP values
         pairs = sorted(
-            zip(ALL_FEATURES, class_shap),
+            zip(_feature_columns, class_shap),
             key=lambda x: abs(x[1]),
             reverse=True,
         )[:5]
@@ -300,6 +270,7 @@ def classify(
     yara: dict,
     obfuscation: dict,
     india_ioc: dict | None = None,
+    apk_path: str | None = None,
 ) -> dict:
     """
     Run XGBoost classification + SHAP explanation.
@@ -327,7 +298,7 @@ def classify(
         }
 
     try:
-        features = extract_maldroid_features(manifest, strings, yara, obfuscation, india_ioc)
+        features = extract_maldroid_features(manifest, strings, yara, obfuscation, india_ioc, apk_path=apk_path)
 
         # Apply preprocessing pipeline if available (matches training-time transforms)
         if _imputer is not None:
@@ -363,3 +334,4 @@ def classify(
             "available": False,
             "inference_ms": 0,
         }
+

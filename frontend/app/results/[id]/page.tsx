@@ -19,6 +19,7 @@ import APKFileTree from "@/components/APKFileTree";
 import ManifestViewer from "@/components/ManifestViewer";
 import MalwareFamilyBadge from "@/components/MalwareFamilyBadge";
 import NetworkTrafficPanel from "@/components/NetworkTrafficPanel";
+import DynamicAnalysisPanel from "@/components/DynamicAnalysisPanel";
 
 export default function ResultsPage() {
   const { id } = useParams() as { id: string };
@@ -26,7 +27,7 @@ export default function ResultsPage() {
   const [result, setResult] = useState<AnalysisResult | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<"overview" | "filetree" | "manifest" | "ml" | "network">("overview");
+  const [activeTab, setActiveTab] = useState<"overview" | "filetree" | "manifest" | "ml" | "network" | "sandbox">("overview");
 
   useEffect(() => {
     if (!id) return;
@@ -97,7 +98,7 @@ export default function ResultsPage() {
 
         {/* Tab Navigation */}
         <div className="flex gap-2 overflow-x-auto pb-2 border-b border-[#1A1A1A]">
-          {(["overview", "filetree", "manifest", "ml", "network"] as const).map((tab) => (
+          {(["overview", "filetree", "manifest", "ml", "network", "sandbox"] as const).map((tab) => (
             <button
               key={tab}
               id={`tab-${tab}`}
@@ -112,7 +113,15 @@ export default function ResultsPage() {
                 : tab === "filetree" ? "[ FILE TREE ]"
                 : tab === "manifest" ? "[ MANIFEST ]"
                 : tab === "ml" ? "[ INTELLIGENCE ]"
-                : "[ NETWORK ]"}
+                : tab === "network" ? "[ NETWORK ]"
+                : (
+                  <span className="flex items-center gap-1.5">
+                    {(result.dynamic?.sandbox_available || result.mobsf?.available) && (
+                      <span className="w-1.5 h-1.5 rounded-full bg-[#4ade80] animate-pulse" />
+                    )}
+                    [ SANDBOX ]
+                  </span>
+                )}
             </button>
           ))}
         </div>
@@ -256,12 +265,28 @@ export default function ResultsPage() {
           </div>
         )}
 
-        {/* 🌐 Network Traffic Tab */}
+        {/* 🔬 Network Traffic Tab */}
         {activeTab === "network" && (
           <div className="max-w-4xl">
             <NetworkTrafficPanel
               analysisId={result.id}
               initialNetwork={result.network as Parameters<typeof NetworkTrafficPanel>[0]["initialNetwork"] ?? null}
+            />
+          </div>
+        )}
+
+        {/* 📦 Dynamic Sandbox Tab */}
+        {activeTab === "sandbox" && (
+          <div className="space-y-4">
+            <p className="text-[0.65rem] font-mono text-[#555] uppercase tracking-widest border-l-2 border-[#0052FF] pl-3">
+              Frida offline behavioral analysis + MobSF deep static scan.
+              Decompiles APK with apktool, walks smali bytecode for API calls,
+              crypto usage, anti-analysis tricks, and hardcoded secrets.
+            </p>
+            <DynamicAnalysisPanel
+              analysisId={result.id}
+              dynamic={result.dynamic}
+              mobsf={result.mobsf}
             />
           </div>
         )}
