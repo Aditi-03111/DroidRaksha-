@@ -238,29 +238,21 @@ DroidRaksha is built using a modern, scalable, and distributed technology stack,
 - **CI/CD & Monitoring:** Automated deployment via GitHub Actions with Sentry and Grafana for error tracking and metrics monitoring.
 - **Sharing:** Threat intelligence sharing via STIX 2.1 / TAXII exports and a rate-limited Bulk REST API.
 
-## 🗺️ Roadmap & Task Status
+## 🗺️ Roadmap & Task Status (Round 2)
 
-### Phase 1: Project Scaffold & Core Backend [Completed]
-- [x] Create project directory structure, `requirements.txt`, `.env.example`
-- [x] Implement `backend/db/database.py` (SQLite/PostgreSQL)
-- [x] Configure basic YARA rules (`malware.yar`, `india_patterns.yar`)
-- [x] Implement core static analysis engines (Manifest, Strings, Cert, YARA, Obfuscation)
+### ✅ Completed & Substantially Progressed Phases
+*   **Phase 1: Fix Unfinished Round 1 Items**
+*   **Phase 2: APK File Tree + Manifest XML Viewer**
+*   **Phase 3: PCAP Upload + Network Traffic Analysis**
+*   **Phase 4: Celery + Redis + WebSocket Progress**
+*   **Phase 7: MobSF Dynamic Sandbox**
+*   **Phase 10: YARA Rules: 12 → 50+**
+*   **Phase 11: AI + ML Intelligence Layer**
+*   **Phase 12: Frontend — All New Components + Pages** (Mostly complete)
 
-### Phase 2: Threat Intel & API Routes [Completed]
-- [x] Integrate external intel (VirusTotal, AbuseIPDB)
-- [x] Create India-specific IOC engine
-- [x] Implement risk scorer and Claude/Gemini narrative generator
-- [x] Set up FastAPI routes (`/upload`, `/analysis`, `/report`, `/stats`)
-
-### Phase 3: Round 2 Architecture Upgrade [Completed]
-- [x] Migrate to asynchronous Celery workers + Redis Queue
-- [x] Integrate Dockerized MobSF for dynamic sandbox analysis
-- [x] Add PCAP network traffic analysis & Frida hooking
-- [x] Add advanced AI Models: XGBoost, MalBERT, Isolation Forest, LangChain ReAct Agent
-
-### Phase 4: Frontend UI Overhaul [Completed]
-- [x] Migrate Next.js frontend to stark Cyber Terminal aesthetic
-- [x] Implement HTML5 Canvas interactive particle mesh background
-- [x] Build Analytics Dashboard with live feed UI
-- [x] Build Detailed Results Page with terminal-style tabs
-- [x] Create PCAP Upload & Network Analysis panel
+### 🔴 Remaining Phases
+*   **Phase 5: Database + Storage Upgrade** (PostgreSQL, MongoDB, S3)
+*   **Phase 6: JADX Decompilation View** (Java source from DEX)
+*   **Phase 8: Advanced C2 + Threat Intelligence** (Beaconing, DGA, India IOC Admin API)
+*   **Phase 9: Static ↔ Dynamic Correlation Engine**
+*   **Phase 13: Legally Defensible Forensic PDF Report**
