@@ -127,7 +127,7 @@ export default async function ReportPage({
             Forensic Analysis Report · DroidRaksha v2.0
           </div>
 
-          <h1 className="text-3xl font-extrabold tracking-tight text-white mb-2 break-all">
+          <h1 className="text-3xl font-extrabold tracking-tight text-secondary mb-2 break-all">
             {pkg}
           </h1>
 
@@ -212,7 +212,7 @@ export default async function ReportPage({
           <h2 className="text-lg font-bold text-indigo-300 mb-3">⚖️ Forensic Verdict</h2>
           <p className="text-sm text-slate-300 leading-relaxed">
             Based on automated static analysis, this application received a risk score of{" "}
-            <strong className="text-white">{score}/100</strong> ({level}). The analysis identified
+            <strong className="text-secondary">{score}/100</strong> ({level}). The analysis identified
             indicators consistent with{" "}
             {report.risk?.threat_categories?.join(", ") || "potential malicious behavior"}.
             This report may be used as supporting evidence in cybersecurity investigations.

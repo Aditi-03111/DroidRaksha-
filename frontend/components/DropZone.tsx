@@ -55,17 +55,17 @@ export default function DropZone({ onUpload, isLoading, compact = false }: DropZ
           ${compact ? "p-5" : "p-12"}
           ${isLoading ? "pointer-events-none opacity-60" : ""}
           ${isDragging
-            ? "border-[#0052FF] bg-[rgba(0,82,255,0.05)]"
-            : "border-[#1A1A1A] bg-[#050505] hover:border-[#0052FF] hover:bg-[rgba(0,82,255,0.02)]"
+            ? "border-primary bg-[rgba(0,237,63,0.05)]"
+            : "border-border bg-surface-raised hover:border-primary hover:bg-[rgba(0,237,63,0.02)]"
           }
         `}
       >
         {isLoading ? (
           <>
             <div className="relative">
-              <span className="w-8 h-8 border-2 border-[#0052FF] border-t-transparent rounded-full animate-spin block mb-4"></span>
+              <span className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin block mb-4"></span>
             </div>
-            <p className="text-[#555] text-xs font-mono uppercase tracking-widest animate-pulse">
+            <p className="text-muted text-xs font-mono uppercase tracking-widest animate-pulse">
               [ SCANNING APK... ]
             </p>
           </>
@@ -73,20 +73,20 @@ export default function DropZone({ onUpload, isLoading, compact = false }: DropZ
           <>
             <div
               className={`w-12 h-12 flex items-center justify-center transition-all duration-300 border
-                ${isDragging ? "border-[#0052FF] bg-[rgba(0,82,255,0.1)]" : "border-[#1A1A1A] bg-black group-hover:border-[#0052FF]"}`}
+                ${isDragging ? "border-primary bg-[rgba(0,237,63,0.1)]" : "border-border bg-background group-hover:border-primary"}`}
             >
               <Upload
-                className={`w-5 h-5 transition-colors ${isDragging ? "text-white" : "text-[#777] group-hover:text-white"}`}
+                className={`w-5 h-5 transition-colors ${isDragging ? "text-secondary" : "text-muted group-hover:text-secondary"}`}
               />
             </div>
 
             <div className="text-center font-mono">
-              <p className="text-white uppercase tracking-widest text-sm mb-1">
+              <p className="text-secondary uppercase tracking-widest text-sm mb-1">
                 {isDragging ? "[ RELEASE TO SCAN ]" : "[ DROP YOUR APK HERE ]"}
               </p>
-              <p className="text-[#555] text-[0.65rem] uppercase tracking-widest">
+              <p className="text-muted text-[0.65rem] uppercase tracking-widest">
                 or{" "}
-                <span className="text-[#0052FF] hover:text-white transition-colors">
+                <span className="text-primary hover:text-secondary transition-colors">
                   browse to upload
                 </span>
                 {" "}— max 700 MB
@@ -94,14 +94,14 @@ export default function DropZone({ onUpload, isLoading, compact = false }: DropZ
             </div>
 
             {!compact && (
-              <div className="flex flex-wrap justify-center items-center gap-4 text-[0.6rem] text-[#555] uppercase tracking-widest mt-2">
-                <span className="flex items-center gap-1.5 border border-[#1A1A1A] px-2 py-0.5 bg-black">
+              <div className="flex flex-wrap justify-center items-center gap-4 text-[0.6rem] text-muted uppercase tracking-widest mt-2">
+                <span className="flex items-center gap-1.5 border border-border px-2 py-0.5 bg-background">
                   AI Narrative
                 </span>
-                <span className="flex items-center gap-1.5 border border-[#1A1A1A] px-2 py-0.5 bg-black">
+                <span className="flex items-center gap-1.5 border border-border px-2 py-0.5 bg-background">
                   YARA Rules
                 </span>
-                <span className="flex items-center gap-1.5 border border-[#1A1A1A] px-2 py-0.5 bg-black">
+                <span className="flex items-center gap-1.5 border border-border px-2 py-0.5 bg-background">
                   MITRE ATT&CK
                 </span>
               </div>
@@ -120,7 +120,7 @@ export default function DropZone({ onUpload, isLoading, compact = false }: DropZ
       </label>
 
       {error && (
-        <p className="mt-4 p-2 bg-[rgba(244,63,94,0.1)] border border-[rgba(244,63,94,0.3)] text-[#f43f5e] text-xs font-mono uppercase tracking-widest text-center">
+        <p className="mt-4 p-2 bg-[rgba(244,63,94,0.1)] border border-[rgba(244,63,94,0.3)] text-danger text-xs font-mono uppercase tracking-widest text-center">
           [ ERR: {error} ]
         </p>
       )}

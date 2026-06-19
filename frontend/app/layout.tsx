@@ -1,16 +1,18 @@
 import type { Metadata } from "next";
-import { Inter, JetBrains_Mono } from "next/font/google";
+import { IBM_Plex_Mono, Space_Mono } from "next/font/google";
 import "./globals.css";
 
-const inter = Inter({
+const ibm_plex_mono = IBM_Plex_Mono({
+  weight: ['400', '500', '600', '700'],
   subsets: ["latin"],
-  variable: "--font-inter",
+  variable: "--font-mono",
   display: "swap",
 });
 
-const jetbrains = JetBrains_Mono({
+const space_mono = Space_Mono({
+  weight: ['400', '700'],
   subsets: ["latin"],
-  variable: "--font-mono",
+  variable: "--font-space-mono",
   display: "swap",
 });
 
@@ -39,8 +41,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${inter.variable} ${jetbrains.variable} dark`}>
-      <body className="min-h-screen bg-black text-slate-100 antialiased font-sans">
+    <html lang="en" className={`${ibm_plex_mono.variable} ${space_mono.variable} dark`}>
+      <body className="min-h-screen bg-background text-secondary antialiased font-mono">
         {children}
       </body>
     </html>

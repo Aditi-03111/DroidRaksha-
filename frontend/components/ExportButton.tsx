@@ -64,8 +64,8 @@ export default function ExportButton({ analysisId, packageName = "Unknown", sha2
     ${state === "loading" ? "opacity-60 cursor-not-allowed" : ""}
     ${state === "done" ? "border-green-500 bg-[rgba(34,197,94,0.1)] text-green-400" : ""}
     ${state === "error" ? "border-rose-500 bg-[rgba(244,63,94,0.1)] text-rose-400" : ""}
-    ${state === "idle" && color === "rose" ? "border-[#f43f5e] bg-[rgba(244,63,94,0.05)] text-[#f43f5e] hover:bg-[rgba(244,63,94,0.15)]" : ""}
-    ${state === "idle" && color === "indigo" ? "border-[#0052FF] bg-[rgba(0,82,255,0.05)] text-[#0052FF] hover:bg-[rgba(0,82,255,0.15)]" : ""}
+    ${state === "idle" && color === "rose" ? "border-danger bg-[rgba(204,34,0,0.1)] text-danger hover:bg-[rgba(244,63,94,0.15)]" : ""}
+    ${state === "idle" && color === "indigo" ? "border-primary bg-[rgba(0,237,63,0.05)] text-primary hover:bg-[rgba(0,82,255,0.15)]" : ""}
   `;
 
   return (
@@ -112,7 +112,7 @@ export default function ExportButton({ analysisId, packageName = "Unknown", sha2
         onClick={() => {
           navigator.clipboard.writeText(`${window.location.origin}/report/${sha256 || analysisId}`);
         }}
-        className="flex items-center gap-2 px-4 py-2 text-[0.65rem] md:text-xs font-mono uppercase tracking-widest border border-[#1A1A1A] bg-[#050505] text-[#777] hover:bg-[#111] hover:text-white hover:border-[#333] transition-all duration-200 corner-brackets"
+        className="flex items-center gap-2 px-4 py-2 text-[0.65rem] md:text-xs font-mono uppercase tracking-widest border border-border bg-surface-raised text-muted hover:bg-surface-raised hover:text-secondary hover:border-border transition-all duration-200 corner-brackets"
         title="Copy shareable report link"
       >
         <Download className="w-3.5 h-3.5" />

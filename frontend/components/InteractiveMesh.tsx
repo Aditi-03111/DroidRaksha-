@@ -64,7 +64,7 @@ export default function InteractiveMesh() {
         if (!ctx) return;
         ctx.beginPath();
         ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
-        ctx.fillStyle = "rgba(0, 82, 255, 0.5)";
+        ctx.fillStyle = "rgba(0, 237, 63, 0.5)";
         ctx.fill();
       }
 
@@ -125,7 +125,7 @@ export default function InteractiveMesh() {
 
           if (distance < 15000) {
             const opacity = 1 - distance / 15000;
-            ctx.strokeStyle = `rgba(0, 82, 255, ${opacity * 0.2})`;
+            ctx.strokeStyle = `rgba(0, 237, 63, ${opacity * 0.2})`;
             ctx.lineWidth = 1;
             ctx.beginPath();
             ctx.moveTo(particles[a].x, particles[a].y);

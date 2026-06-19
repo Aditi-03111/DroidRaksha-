@@ -39,17 +39,17 @@ export default function ResultsPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-black grid-bg flex flex-col items-center justify-center gap-4">
-        <span className="w-6 h-6 border-2 border-[#0052FF] border-t-transparent rounded-full animate-spin mb-4"></span>
-        <p className="text-[#555] font-mono text-xs uppercase animate-pulse">Retrieving analysis results...</p>
+      <div className="min-h-screen bg-background grid-bg flex flex-col items-center justify-center gap-4">
+        <span className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin mb-4"></span>
+        <p className="text-muted font-mono text-xs uppercase animate-pulse">Retrieving analysis results...</p>
       </div>
     );
   }
 
   if (error || !result) {
     return (
-      <div className="min-h-screen bg-black grid-bg flex flex-col items-center justify-center gap-4">
-        <div className="bg-[rgba(244,63,94,0.1)] border border-[#f43f5e] p-4 text-[#f43f5e] font-mono text-xs uppercase text-center">
+      <div className="min-h-screen bg-background grid-bg flex flex-col items-center justify-center gap-4">
+        <div className="bg-[rgba(244,63,94,0.1)] border border-danger p-4 text-danger font-mono text-xs uppercase text-center">
           <p className="mb-2 font-bold">[ ERROR LOADING RESULTS ]</p>
           <p>{error || "Analysis not found."}</p>
         </div>
@@ -66,25 +66,25 @@ export default function ResultsPage() {
                     result.risk.risk_level === 'LOW' ? '#4ade80' : '#22d3ee';
 
   return (
-    <div className="min-h-screen bg-black grid-bg p-6 md:p-12 relative">
+    <div className="min-h-screen bg-background grid-bg p-6 md:p-12 relative">
       <div className="absolute inset-0 bg-gradient-to-b from-transparent to-black pointer-events-none z-0"></div>
       
       <div className="max-w-[100rem] mx-auto space-y-8 relative z-10">
         
         {/* Navigation & Actions */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-[#1A1A1A] pb-6">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-border pb-6">
           <div className="flex items-center gap-4">
-            <Link href="/dashboard" className="text-[#555] hover:text-white transition-colors">
+            <Link href="/dashboard" className="text-muted hover:text-secondary transition-colors">
               <ArrowLeft className="w-5 h-5" />
             </Link>
             <div>
               <div className="flex items-center gap-3">
-                <h1 className="text-xl md:text-2xl font-bold text-white uppercase tracking-tighter truncate max-w-md">{result.filename}</h1>
+                <h1 className="text-xl md:text-2xl font-bold text-secondary uppercase tracking-tighter truncate max-w-md">{result.filename}</h1>
                 <span className={`text-[0.6rem] font-bold px-2 py-0.5 border risk-badge-${result.risk.risk_level.toLowerCase()}`}>
                   {result.risk.risk_level}
                 </span>
               </div>
-              <p className="text-[0.65rem] font-mono text-[#555] mt-1 break-all uppercase tracking-widest">
+              <p className="text-[0.65rem] font-mono text-muted mt-1 break-all uppercase tracking-widest">
                 SHA-256: {result.hashes.sha256}
               </p>
             </div>
@@ -97,7 +97,7 @@ export default function ResultsPage() {
         </div>
 
         {/* Tab Navigation */}
-        <div className="flex gap-2 overflow-x-auto pb-2 border-b border-[#1A1A1A]">
+        <div className="flex gap-2 overflow-x-auto pb-2 border-b border-border">
           {(["overview", "filetree", "manifest", "ml", "network", "sandbox"] as const).map((tab) => (
             <button
               key={tab}
@@ -105,8 +105,8 @@ export default function ResultsPage() {
               onClick={() => setActiveTab(tab)}
               className={`px-4 py-2 text-[0.65rem] font-mono uppercase tracking-widest transition-all whitespace-nowrap border-b-2 ${
                 activeTab === tab
-                  ? "border-[#0052FF] text-[#0052FF] bg-[rgba(0,82,255,0.05)]"
-                  : "border-transparent text-[#555] hover:text-white hover:bg-[#050505]"
+                  ? "border-primary text-primary bg-[rgba(0,237,63,0.05)]"
+                  : "border-transparent text-muted hover:text-secondary hover:bg-surface-raised"
               }`}
             >
               {tab === "overview" ? "[ ANALYSIS ]"
@@ -144,7 +144,7 @@ export default function ResultsPage() {
               <CertificateCard cert={result.certificate} />
             </div>
             <div className="lg:col-span-2 space-y-6">
-              <div className="bg-[#050505] border border-[#1A1A1A] p-6 corner-brackets grid grid-cols-2 md:grid-cols-4 gap-6">
+              <div className="bg-surface-raised border border-border p-6 corner-brackets grid grid-cols-2 md:grid-cols-4 gap-6">
                 <InfoItem label="Package Name" value={result.manifest.package_name} />
                 <InfoItem label="Version" value={`${result.manifest.version_name} (${result.manifest.version_code})`} />
                 <InfoItem label="Target SDK" value={result.manifest.target_sdk.toString()} />
@@ -159,7 +159,7 @@ export default function ResultsPage() {
 
         {activeTab === "filetree" && (
           <div className="space-y-4 max-w-4xl">
-            <p className="text-[0.65rem] font-mono text-[#555] uppercase tracking-widest border-l-2 border-[#1A1A1A] pl-3">
+            <p className="text-[0.65rem] font-mono text-muted uppercase tracking-widest border-l-2 border-border pl-3">
               Decoded APK structure. Suspicious entries highlighted.
             </p>
             <APKFileTree analysisId={result.id} />
@@ -168,7 +168,7 @@ export default function ResultsPage() {
 
         {activeTab === "manifest" && (
           <div className="space-y-4 max-w-5xl">
-            <p className="text-[0.65rem] font-mono text-[#555] uppercase tracking-widest border-l-2 border-[#1A1A1A] pl-3">
+            <p className="text-[0.65rem] font-mono text-muted uppercase tracking-widest border-l-2 border-border pl-3">
               Decoded AndroidManifest.xml. Dangerous permissions highlighted.
             </p>
             <ManifestViewer analysisId={result.id} />
@@ -177,7 +177,7 @@ export default function ResultsPage() {
 
         {activeTab === "ml" && (
           <div className="space-y-6">
-            <p className="text-[0.65rem] font-mono text-[#555] uppercase tracking-widest border-l-2 border-[#1A1A1A] pl-3">
+            <p className="text-[0.65rem] font-mono text-muted uppercase tracking-widest border-l-2 border-border pl-3">
               Full ML Intelligence Layer results — XGBoost, MalBERT, LangChain Agent.
             </p>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -191,20 +191,20 @@ export default function ResultsPage() {
 
               {/* Court Narrative */}
               {result.agent_verdict?.court_narrative && (
-                <div className="bg-[#050505] border border-[#1A1A1A] p-6 corner-brackets space-y-4">
-                  <div className="flex items-center gap-2 border-b border-[#111] pb-2">
-                    <h3 className="font-bold text-white uppercase tracking-tight text-sm font-mono">Agent Verdict</h3>
-                    <span className="ml-auto text-[0.65rem] font-mono text-[#555] uppercase">
-                      Confidence: <span className="text-[#0052FF]">{result.agent_verdict.verdict_confidence}%</span>
+                <div className="bg-surface-raised border border-border p-6 corner-brackets space-y-4">
+                  <div className="flex items-center gap-2 border-b border-border pb-2">
+                    <h3 className="font-bold text-secondary uppercase tracking-tight text-sm font-mono">Agent Verdict</h3>
+                    <span className="ml-auto text-[0.65rem] font-mono text-muted uppercase">
+                      Confidence: <span className="text-primary">{result.agent_verdict.verdict_confidence}%</span>
                     </span>
                   </div>
-                  <div className="text-[0.7rem] font-mono text-[#777] leading-relaxed whitespace-pre-wrap uppercase">
+                  <div className="text-[0.7rem] font-mono text-muted leading-relaxed whitespace-pre-wrap uppercase">
                     {result.agent_verdict.court_narrative}
                   </div>
                   {result.agent_verdict.ioc_summary && (
-                    <div className="p-3 bg-[rgba(244,63,94,0.05)] border border-[rgba(244,63,94,0.2)] mt-4">
-                      <p className="text-[0.65rem] font-mono font-bold text-[#f43f5e] uppercase tracking-widest mb-1">IOC Summary</p>
-                      <p className="text-[0.65rem] font-mono text-[#f43f5e]/80 uppercase">{result.agent_verdict.ioc_summary}</p>
+                    <div className="p-3 bg-[rgba(204,34,0,0.1)] border border-[rgba(244,63,94,0.2)] mt-4">
+                      <p className="text-[0.65rem] font-mono font-bold text-danger uppercase tracking-widest mb-1">IOC Summary</p>
+                      <p className="text-[0.65rem] font-mono text-danger/80 uppercase">{result.agent_verdict.ioc_summary}</p>
                     </div>
                   )}
                 </div>
@@ -212,17 +212,17 @@ export default function ResultsPage() {
 
               {/* XGBoost Class Probabilities */}
               {result.xgboost?.available && (
-                <div className="bg-[#050505] border border-[#1A1A1A] p-6 corner-brackets space-y-4">
-                  <h3 className="font-bold text-white uppercase tracking-tight text-sm font-mono flex items-center gap-2 border-b border-[#111] pb-2">
+                <div className="bg-surface-raised border border-border p-6 corner-brackets space-y-4">
+                  <h3 className="font-bold text-secondary uppercase tracking-tight text-sm font-mono flex items-center gap-2 border-b border-border pb-2">
                     XGBoost Probabilities
-                    <span className="text-[0.65rem] text-[#555] font-normal ml-auto">MalDroid 2020 · {result.xgboost.inference_ms}ms</span>
+                    <span className="text-[0.65rem] text-muted font-normal ml-auto">MalDroid 2020 · {result.xgboost.inference_ms}ms</span>
                   </h3>
                   {Object.entries(result.xgboost.class_probs)
                     .sort(([, a], [, b]) => b - a)
                     .map(([cls, prob]) => (
                       <div key={cls} className="flex items-center gap-3">
-                        <span className="text-[0.65rem] font-mono text-[#777] uppercase w-28 shrink-0">{cls}</span>
-                        <div className="flex-1 h-1 bg-[#111] overflow-hidden">
+                        <span className="text-[0.65rem] font-mono text-muted uppercase w-28 shrink-0">{cls}</span>
+                        <div className="flex-1 h-1 bg-surface-raised overflow-hidden">
                           <div
                             className="h-full transition-all duration-700 relative"
                             style={{ width: `${prob * 100}%`, background: prob > 0.5 ? "#f43f5e" : prob > 0.2 ? "#f97316" : "#22d3ee" }}
@@ -230,7 +230,7 @@ export default function ResultsPage() {
                              <div className="absolute right-0 top-1/2 -translate-y-1/2 w-1 h-1 bg-white shadow-[0_0_5px_#fff]"></div>
                           </div>
                         </div>
-                        <span className="text-[0.65rem] font-mono text-white w-10 text-right">{(prob * 100).toFixed(1)}%</span>
+                        <span className="text-[0.65rem] font-mono text-secondary w-10 text-right">{(prob * 100).toFixed(1)}%</span>
                       </div>
                     ))}
                 </div>
@@ -238,17 +238,17 @@ export default function ResultsPage() {
 
               {/* MalBERT all scores */}
               {result.malbert?.available && (
-                <div className="bg-[#050505] border border-[#1A1A1A] p-6 corner-brackets space-y-4">
-                  <h3 className="font-bold text-white uppercase tracking-tight text-sm font-mono flex items-center gap-2 border-b border-[#111] pb-2">
+                <div className="bg-surface-raised border border-border p-6 corner-brackets space-y-4">
+                  <h3 className="font-bold text-secondary uppercase tracking-tight text-sm font-mono flex items-center gap-2 border-b border-border pb-2">
                     MalBERT Zero-Shot
-                    <span className="text-[0.65rem] text-[#555] font-normal ml-auto">{result.malbert.inference_ms}ms</span>
+                    <span className="text-[0.65rem] text-muted font-normal ml-auto">{result.malbert.inference_ms}ms</span>
                   </h3>
                   {Object.entries(result.malbert.all_scores)
                     .sort(([, a], [, b]) => b - a)
                     .map(([cls, score]) => (
                       <div key={cls} className="flex items-center gap-3">
-                        <span className="text-[0.65rem] font-mono text-[#777] uppercase w-36 shrink-0">{cls}</span>
-                        <div className="flex-1 h-1 bg-[#111] overflow-hidden">
+                        <span className="text-[0.65rem] font-mono text-muted uppercase w-36 shrink-0">{cls}</span>
+                        <div className="flex-1 h-1 bg-surface-raised overflow-hidden">
                           <div
                             className="h-full transition-all duration-700 relative"
                             style={{ width: `${score * 100}%`, background: score > 0.5 ? "#f43f5e" : score > 0.2 ? "#f97316" : "#22d3ee" }}
@@ -256,7 +256,7 @@ export default function ResultsPage() {
                              <div className="absolute right-0 top-1/2 -translate-y-1/2 w-1 h-1 bg-white shadow-[0_0_5px_#fff]"></div>
                           </div>
                         </div>
-                        <span className="text-[0.65rem] font-mono text-white w-10 text-right">{(score * 100).toFixed(1)}%</span>
+                        <span className="text-[0.65rem] font-mono text-secondary w-10 text-right">{(score * 100).toFixed(1)}%</span>
                       </div>
                     ))}
                 </div>
@@ -278,7 +278,7 @@ export default function ResultsPage() {
         {/* 📦 Dynamic Sandbox Tab */}
         {activeTab === "sandbox" && (
           <div className="space-y-4">
-            <p className="text-[0.65rem] font-mono text-[#555] uppercase tracking-widest border-l-2 border-[#0052FF] pl-3">
+            <p className="text-[0.65rem] font-mono text-muted uppercase tracking-widest border-l-2 border-primary pl-3">
               Frida offline behavioral analysis + MobSF deep static scan.
               Decompiles APK with apktool, walks smali bytecode for API calls,
               crypto usage, anti-analysis tricks, and hardcoded secrets.
@@ -298,8 +298,8 @@ export default function ResultsPage() {
 function InfoItem({ label, value }: { label: string; value: string }) {
   return (
     <div className="space-y-1">
-      <p className="text-[0.6rem] font-mono text-[#555] uppercase tracking-widest">{label}</p>
-      <p className="text-sm font-bold text-white truncate font-mono" title={value}>{value}</p>
+      <p className="text-[0.6rem] font-mono text-muted uppercase tracking-widest">{label}</p>
+      <p className="text-sm font-bold text-secondary truncate font-mono" title={value}>{value}</p>
     </div>
   );
 }
