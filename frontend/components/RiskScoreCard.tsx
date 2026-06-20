@@ -88,7 +88,7 @@ export default function RiskScoreCard({ risk }: Props) {
 
       {/* Score breakdown bars */}
       <div className="space-y-2.5">
-        <p className="text-xs text-slate-500 flex items-center gap-1.5">
+        <p className="text-xs text-slate-300 flex items-center gap-1.5">
           <TrendingUp className="w-3.5 h-3.5" /> Score Breakdown
         </p>
         {Object.entries(risk.breakdown).map(([key, val]) => {
@@ -96,7 +96,7 @@ export default function RiskScoreCard({ risk }: Props) {
           const pctBar = Math.round((val / max) * 100);
           return (
             <div key={key} className="flex items-center gap-3">
-              <span className="text-xs text-slate-400 w-24 shrink-0">{BREAKDOWN_LABELS[key] ?? key}</span>
+              <span className="text-xs text-slate-200 w-24 shrink-0">{BREAKDOWN_LABELS[key] ?? key}</span>
               <div className="flex-1 h-1.5 bg-slate-800 rounded-full overflow-hidden">
                 <div
                   className="h-full rounded-full transition-all duration-700"
@@ -106,7 +106,7 @@ export default function RiskScoreCard({ risk }: Props) {
                   }}
                 />
               </div>
-              <span className="text-xs font-mono text-slate-500 w-8 text-right">{val}</span>
+              <span className="text-xs font-mono text-slate-300 w-8 text-right">{val}</span>
             </div>
           );
         })}

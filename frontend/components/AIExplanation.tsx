@@ -27,7 +27,7 @@ export default function AIExplanation({ narrative, recommendations }: Props) {
       <div className="flex items-center gap-2">
         <Zap className="w-5 h-5 text-yellow-400" />
         <h2 className="font-semibold text-slate-200">AI Threat Narrative</h2>
-        <span className="ml-auto text-xs text-slate-500 bg-slate-800 px-2 py-0.5 rounded-full">
+        <span className="ml-auto text-xs text-slate-300 bg-slate-800 px-2 py-0.5 rounded-full">
           Claude
         </span>
       </div>
@@ -42,7 +42,7 @@ export default function AIExplanation({ narrative, recommendations }: Props) {
       {/* Recommendations */}
       {recommendations.length > 0 && (
         <div className="border-t border-white/5 pt-5 space-y-2">
-          <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
+          <p className="text-xs font-semibold text-slate-200 uppercase tracking-wider">
             Security Recommendations
           </p>
           <ul className="space-y-2">

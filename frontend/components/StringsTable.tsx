@@ -6,7 +6,7 @@ interface Props { strings: Strings }
 const RISK_COLORS = {
   high:   "text-rose-400",
   medium: "text-yellow-400",
-  low:    "text-slate-400",
+  low:    "text-slate-200",
 };
 
 export default function StringsTable({ strings }: Props) {
@@ -29,7 +29,7 @@ export default function StringsTable({ strings }: Props) {
         ].map(({ label, count, color }) => (
           <div key={label} className="rounded-lg p-3 bg-slate-800/60 text-center">
             <p className={`text-xl font-bold font-mono ${color}`}>{count}</p>
-            <p className="text-xs text-slate-500 mt-0.5">{label}</p>
+            <p className="text-xs text-slate-300 mt-0.5">{label}</p>
           </div>
         ))}
       </div>
@@ -40,7 +40,7 @@ export default function StringsTable({ strings }: Props) {
             <Row key={i} value={u.value} risk={u.risk} />
           ))}
           {allUrls.length > 15 && (
-            <p className="text-xs text-slate-600 italic">+{allUrls.length - 15} more URLs…</p>
+            <p className="text-xs text-slate-200 italic">+{allUrls.length - 15} more URLs…</p>
           )}
         </Section>
       )}
@@ -75,7 +75,7 @@ function Section({
 }) {
   return (
     <div className="space-y-2">
-      <p className="text-xs text-slate-500 flex items-center gap-1.5 uppercase tracking-wider font-medium">
+      <p className="text-xs text-slate-300 flex items-center gap-1.5 uppercase tracking-wider font-medium">
         {icon} {title}
       </p>
       <div className="space-y-1">{children}</div>
@@ -84,7 +84,7 @@ function Section({
 }
 
 function Row({ value, risk }: { value: string; risk?: string }) {
-  const color = RISK_COLORS[(risk as keyof typeof RISK_COLORS) ?? "low"] ?? "text-slate-400";
+  const color = RISK_COLORS[(risk as keyof typeof RISK_COLORS) ?? "low"] ?? "text-slate-200";
   return (
     <div className="flex items-center gap-2 rounded px-2 py-1 hover:bg-white/[0.02] transition-colors">
       <span className={`font-mono text-xs break-all ${color}`}>{value}</span>

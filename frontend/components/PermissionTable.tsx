@@ -30,14 +30,14 @@ export default function PermissionTable({ permissions, dangerousCombos }: Props)
       {/* Dangerous combos */}
       {dangerousCombos.length > 0 && (
         <div className="space-y-2">
-          <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+          <p className="text-xs font-semibold text-slate-200 uppercase tracking-wider flex items-center gap-1.5">
             <AlertTriangle className="w-3.5 h-3.5 text-yellow-400" />
             Dangerous Combinations
           </p>
           {dangerousCombos.map((combo, i) => (
             <div key={i} className="rounded-lg p-3 bg-yellow-500/5 border border-yellow-500/20">
               <p className="text-sm font-medium text-yellow-300">{combo.label}</p>
-              <p className="text-xs text-slate-400 mt-1">{combo.permissions.join(" + ")}</p>
+              <p className="text-xs text-slate-200 mt-1">{combo.permissions.join(" + ")}</p>
             </div>
           ))}
         </div>
@@ -48,19 +48,19 @@ export default function PermissionTable({ permissions, dangerousCombos }: Props)
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-white/5">
-              <th className="text-left py-2 text-xs text-slate-500 font-medium w-4/5">Permission</th>
-              <th className="text-left py-2 text-xs text-slate-500 font-medium">Level</th>
+              <th className="text-left py-2 text-xs text-slate-300 font-medium w-4/5">Permission</th>
+              <th className="text-left py-2 text-xs text-slate-300 font-medium">Level</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-white/5">
             {[...dangerous, ...normal].map((perm, i) => (
               <tr key={i} className="hover:bg-white/[0.02] transition-colors">
                 <td className="py-2 pr-4">
-                  <span className={`font-mono text-xs ${perm.is_dangerous ? "text-rose-300" : "text-slate-400"}`}>
+                  <span className={`font-mono text-xs ${perm.is_dangerous ? "text-rose-300" : "text-slate-200"}`}>
                     {perm.name.replace("android.permission.", "")}
                   </span>
                   {perm.description && (
-                    <p className="text-xs text-slate-600 mt-0.5">{perm.description}</p>
+                    <p className="text-xs text-slate-200 mt-0.5">{perm.description}</p>
                   )}
                 </td>
                 <td className="py-2">
@@ -69,7 +69,7 @@ export default function PermissionTable({ permissions, dangerousCombos }: Props)
                       Dangerous
                     </span>
                   ) : (
-                    <span className="text-xs text-slate-600">{perm.protection_level || "Normal"}</span>
+                    <span className="text-xs text-slate-200">{perm.protection_level || "Normal"}</span>
                   )}
                 </td>
               </tr>

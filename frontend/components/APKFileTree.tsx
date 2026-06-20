@@ -39,7 +39,7 @@ const EXT_ICONS: Record<string, { icon: string; color: string }> = {
   ".jar": { icon: "☕", color: "text-red-400" },
   ".bin": { icon: "💾", color: "text-rose-400" },
   ".enc": { icon: "🔒", color: "text-rose-500" },
-  ".dat": { icon: "📦", color: "text-slate-400" },
+  ".dat": { icon: "📦", color: "text-slate-200" },
 };
 
 function formatBytes(b: number) {
@@ -74,12 +74,12 @@ function TreeNodeView({
       >
         {/* Indent guides */}
         {depth > 0 && (
-          <span className="text-slate-700 select-none" style={{ marginLeft: `${(depth - 1) * 12}px` }} />
+          <span className="text-slate-300 select-none" style={{ marginLeft: `${(depth - 1) * 12}px` }} />
         )}
 
         {/* Expand arrow */}
         {isDir ? (
-          <span className="text-slate-500 w-3.5 flex-shrink-0">
+          <span className="text-slate-300 w-3.5 flex-shrink-0">
             {open ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
           </span>
         ) : (
@@ -96,7 +96,7 @@ function TreeNodeView({
         ) : extInfo ? (
           <span className={`text-[11px] leading-none ${extInfo.color}`}>{extInfo.icon}</span>
         ) : (
-          <File className="w-3 h-3 text-slate-500 flex-shrink-0" />
+          <File className="w-3 h-3 text-slate-300 flex-shrink-0" />
         )}
 
         {/* Name */}
@@ -106,7 +106,7 @@ function TreeNodeView({
 
         {/* Size */}
         {node.size != null && (
-          <span className="ml-auto text-[10px] text-slate-600 flex-shrink-0">
+          <span className="ml-auto text-[10px] text-slate-200 flex-shrink-0">
             {formatBytes(node.size)}
           </span>
         )}
@@ -177,8 +177,8 @@ export default function APKFileTree({ analysisId }: APKFileTreeProps) {
 
   if (!data || data.error) {
     return (
-      <div className="rounded-2xl border border-slate-700/40 bg-slate-900/60 p-6 text-center text-slate-500 text-sm">
-        <Package className="w-8 h-8 mx-auto mb-2 text-slate-600" />
+      <div className="rounded-2xl border border-slate-700/40 bg-slate-900/60 p-6 text-center text-slate-300 text-sm">
+        <Package className="w-8 h-8 mx-auto mb-2 text-slate-200" />
         {data?.error || "File tree unavailable"}
       </div>
     );
@@ -199,13 +199,13 @@ export default function APKFileTree({ analysisId }: APKFileTreeProps) {
             </span>
           )}
         </div>
-        <div className="flex items-center gap-3 text-xs text-slate-500">
+        <div className="flex items-center gap-3 text-xs text-slate-300">
           <span><span className="text-slate-300 font-semibold">{stats.total_files}</span> files</span>
-          <span className="text-slate-700">·</span>
+          <span className="text-slate-300">·</span>
           <span><span className="text-blue-400 font-semibold">{stats.dex_count}</span> DEX</span>
-          <span className="text-slate-700">·</span>
+          <span className="text-slate-300">·</span>
           <span><span className="text-orange-400 font-semibold">{stats.native_libs}</span> .so libs</span>
-          <span className="text-slate-700">·</span>
+          <span className="text-slate-300">·</span>
           <span>{formatBytes(stats.total_size_bytes || 0)}</span>
         </div>
       </div>
@@ -241,7 +241,7 @@ export default function APKFileTree({ analysisId }: APKFileTreeProps) {
       {/* Tree */}
       <div className="px-3 pb-4 max-h-96 overflow-y-auto scrollbar-thin scrollbar-track-transparent scrollbar-thumb-slate-700">
         {data.tree.length === 0 ? (
-          <p className="text-center text-slate-600 text-xs py-8">No files found</p>
+          <p className="text-center text-slate-200 text-xs py-8">No files found</p>
         ) : (
           data.tree.map((node) => (
             <TreeNodeView key={node.path} node={node} depth={0} />

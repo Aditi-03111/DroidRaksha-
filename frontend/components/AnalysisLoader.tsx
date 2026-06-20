@@ -27,7 +27,7 @@ export default function AnalysisLoader() {
         <h3 className="text-xl font-bold text-slate-100">
           Analysing APK
         </h3>
-        <p className="text-slate-400 text-sm mt-1">
+        <p className="text-slate-200 text-sm mt-1">
           Running multi-engine threat analysis — this may take 15–30 seconds
         </p>
       </div>
@@ -41,7 +41,7 @@ export default function AnalysisLoader() {
             style={{ animationDelay: `${i * 0.2}s` }}
           >
             <Icon className={`w-5 h-5 ${color} animate-pulse`} style={{ animationDelay: `${i * 0.3}s` }} />
-            <span className="text-xs text-slate-400 text-center">{label}</span>
+            <span className="text-xs text-slate-200 text-center">{label}</span>
           </div>
         ))}
       </div>

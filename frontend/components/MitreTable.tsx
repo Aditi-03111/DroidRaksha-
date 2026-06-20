@@ -17,10 +17,10 @@ export default function MitreTable({ tactics }: Props) {
     return (
       <div className="card-surface p-6 rounded-2xl">
         <div className="flex items-center gap-2 mb-3">
-          <Target className="w-5 h-5 text-slate-500" />
+          <Target className="w-5 h-5 text-slate-300" />
           <h2 className="font-semibold text-slate-200">MITRE ATT&CK for Mobile</h2>
         </div>
-        <p className="text-sm text-slate-500">No MITRE techniques mapped.</p>
+        <p className="text-sm text-slate-300">No MITRE techniques mapped.</p>
       </div>
     );
   }
@@ -32,16 +32,16 @@ export default function MitreTable({ tactics }: Props) {
           <Target className="w-5 h-5 text-rose-400" />
           <h2 className="font-semibold text-slate-200">MITRE ATT&CK for Mobile</h2>
         </div>
-        <span className="text-xs text-slate-500">{tactics.length} techniques</span>
+        <span className="text-xs text-slate-300">{tactics.length} techniques</span>
       </div>
 
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-white/5">
-              <th className="text-left py-2 text-xs text-slate-500 font-medium w-24">Technique</th>
-              <th className="text-left py-2 text-xs text-slate-500 font-medium">Name</th>
-              <th className="text-left py-2 text-xs text-slate-500 font-medium w-40">Tactic</th>
+              <th className="text-left py-2 text-xs text-slate-300 font-medium w-24">Technique</th>
+              <th className="text-left py-2 text-xs text-slate-300 font-medium">Name</th>
+              <th className="text-left py-2 text-xs text-slate-300 font-medium w-40">Tactic</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-white/5">
@@ -59,7 +59,7 @@ export default function MitreTable({ tactics }: Props) {
                 </td>
                 <td className="py-2.5 pr-3">
                   <p className="text-xs text-slate-200 font-medium">{t.name}</p>
-                  <p className="text-xs text-slate-500 mt-0.5">{t.evidence}</p>
+                  <p className="text-xs text-slate-300 mt-0.5">{t.evidence}</p>
                 </td>
                 <td className="py-2.5">
                   <span

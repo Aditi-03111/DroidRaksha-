@@ -126,14 +126,14 @@ export default function ManifestViewer({ analysisId }: ManifestViewerProps) {
           <button
             onClick={copyXML}
             disabled={!data?.xml_string}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs text-slate-400 hover:text-slate-200 border border-slate-700/40 hover:border-slate-600 bg-slate-800/60 hover:bg-slate-700/60 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs text-slate-200 hover:text-slate-200 border border-slate-700/40 hover:border-slate-600 bg-slate-800/60 hover:bg-slate-700/60 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
           >
             {copied ? <CheckCircle2 className="w-3 h-3 text-green-400" /> : <Copy className="w-3 h-3" />}
             {copied ? "Copied!" : "Copy XML"}
           </button>
           <button
             onClick={() => setCollapsed((c) => !c)}
-            className="p-1.5 rounded-lg text-slate-500 hover:text-slate-300 hover:bg-slate-700/40 transition-all"
+            className="p-1.5 rounded-lg text-slate-300 hover:text-slate-300 hover:bg-slate-700/40 transition-all"
           >
             {collapsed ? <ChevronDown className="w-4 h-4" /> : <ChevronUp className="w-4 h-4" />}
           </button>
@@ -161,9 +161,9 @@ export default function ManifestViewer({ analysisId }: ManifestViewerProps) {
 
           {/* Permission count */}
           {permissions.length > 0 && (
-            <div className="px-4 pt-3 pb-0 flex gap-4 text-xs text-slate-500">
+            <div className="px-4 pt-3 pb-0 flex gap-4 text-xs text-slate-300">
               <span><span className="text-slate-300 font-semibold">{permissions.length}</span> total permissions</span>
-              <span className="text-slate-700">·</span>
+              <span className="text-slate-300">·</span>
               <span><span className="text-rose-400 font-semibold">{dangerousPerms.length}</span> dangerous</span>
             </div>
           )}
@@ -176,10 +176,10 @@ export default function ManifestViewer({ analysisId }: ManifestViewerProps) {
                 dangerouslySetInnerHTML={{ __html: highlightXML(data.xml_string) }}
               />
             ) : (
-              <div className="text-center text-slate-500 py-10">
-                <FileCode className="w-8 h-8 mx-auto mb-2 text-slate-700" />
+              <div className="text-center text-slate-300 py-10">
+                <FileCode className="w-8 h-8 mx-auto mb-2 text-slate-300" />
                 <p className="text-sm">{data?.error || "Manifest XML unavailable"}</p>
-                <p className="text-xs mt-1 text-slate-600">
+                <p className="text-xs mt-1 text-slate-200">
                   Install androguard for binary XML decoding: <code className="font-mono">pip install androguard</code>
                 </p>
               </div>

@@ -8,10 +8,10 @@ export default function CertificateCard({ cert }: Props) {
     return (
       <div className="card-surface p-6 rounded-2xl">
         <div className="flex items-center gap-2 mb-3">
-          <Lock className="w-5 h-5 text-slate-500" />
+          <Lock className="w-5 h-5 text-slate-300" />
           <h2 className="font-semibold text-slate-200">Certificate</h2>
         </div>
-        <p className="text-sm text-slate-500">{cert.error}</p>
+        <p className="text-sm text-slate-300">{cert.error}</p>
       </div>
     );
   }
@@ -66,8 +66,8 @@ export default function CertificateCard({ cert }: Props) {
 
       {cert.fingerprint_sha256 && (
         <div>
-          <p className="text-xs text-slate-500 mb-1">SHA-256 Fingerprint</p>
-          <p className="font-mono text-xs text-slate-400 break-all bg-slate-800/60 rounded p-2">
+          <p className="text-xs text-slate-300 mb-1">SHA-256 Fingerprint</p>
+          <p className="font-mono text-xs text-slate-200 break-all bg-slate-800/60 rounded p-2">
             {cert.fingerprint_sha256}
           </p>
         </div>
@@ -90,7 +90,7 @@ function Field({
   const color = highlight === "rose" ? "text-rose-400" : highlight === "yellow" ? "text-yellow-400" : "text-slate-300";
   return (
     <div className="flex gap-3">
-      <span className="text-xs text-slate-500 w-24 shrink-0 pt-0.5">{label}</span>
+      <span className="text-xs text-slate-300 w-24 shrink-0 pt-0.5">{label}</span>
       <span className={`text-xs break-all ${mono ? "font-mono" : ""} ${color}`}>{value || "—"}</span>
     </div>
   );

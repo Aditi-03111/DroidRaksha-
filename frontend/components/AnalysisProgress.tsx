@@ -21,7 +21,7 @@ interface Props {
 }
 
 const STAGE_META: Record<string, { label: string; icon: React.ElementType; color: string }> = {
-  queued:      { label: "Queued",             icon: Loader2,       color: "text-slate-400" },
+  queued:      { label: "Queued",             icon: Loader2,       color: "text-slate-200" },
   hashing:     { label: "Hashing file",       icon: Cpu,           color: "text-blue-400" },
   manifest:    { label: "Manifest parser",    icon: FileCode,      color: "text-green-400" },
   strings:     { label: "String extractor",   icon: Search,        color: "text-yellow-400" },
@@ -33,7 +33,7 @@ const STAGE_META: Record<string, { label: string; icon: React.ElementType; color
   risk_score:  { label: "Risk scoring",       icon: AlertTriangle, color: "text-rose-500" },
   mitre:       { label: "MITRE ATT&CK",       icon: Zap,           color: "text-violet-400" },
   ai:          { label: "AI narrative",       icon: Brain,         color: "text-indigo-400" },
-  saving:      { label: "Saving to DB",       icon: Cpu,           color: "text-slate-400" },
+  saving:      { label: "Saving to DB",       icon: Cpu,           color: "text-slate-200" },
   complete:    { label: "Complete!",          icon: CheckCircle2,  color: "text-green-400" },
   error:       { label: "Failed",             icon: AlertTriangle, color: "text-rose-500" },
 };
@@ -130,13 +130,13 @@ export default function AnalysisProgress({ jobId, onComplete, onError }: Props) 
 
           <div className="text-center">
             <p className={`text-lg font-semibold ${stageMeta.color}`}>{stageMeta.label}</p>
-            <p className="text-sm text-slate-400 mt-0.5">{current?.msg || "Connecting to analysis server..."}</p>
+            <p className="text-sm text-slate-200 mt-0.5">{current?.msg || "Connecting to analysis server..."}</p>
           </div>
         </div>
 
         {/* Progress bar */}
         <div className="space-y-2">
-          <div className="flex justify-between text-xs text-slate-500">
+          <div className="flex justify-between text-xs text-slate-300">
             <span>Progress</span>
             <span className="font-mono text-slate-300">{pct}%</span>
           </div>
@@ -168,7 +168,7 @@ export default function AnalysisProgress({ jobId, onComplete, onError }: Props) 
         ref={logRef}
         className="rounded-xl border border-slate-700/30 bg-slate-950/60 p-4 space-y-1.5 max-h-48 overflow-y-auto scrollbar-thin scrollbar-track-transparent scrollbar-thumb-slate-700"
       >
-        <p className="text-[10px] text-slate-600 font-mono uppercase tracking-widest mb-2">Analysis log</p>
+        <p className="text-[10px] text-slate-200 font-mono uppercase tracking-widest mb-2">Analysis log</p>
         {events.map((ev, i) => {
           const m = STAGE_META[ev.stage] ?? STAGE_META.queued;
           const Ic = m.icon;
@@ -177,13 +177,13 @@ export default function AnalysisProgress({ jobId, onComplete, onError }: Props) 
               <span className={`flex-shrink-0 mt-0.5 ${m.color}`}>
                 <Ic className="w-3 h-3" />
               </span>
-              <span className="text-slate-500 font-mono w-8 flex-shrink-0">{ev.pct}%</span>
-              <span className="text-slate-400">{ev.msg}</span>
+              <span className="text-slate-300 font-mono w-8 flex-shrink-0">{ev.pct}%</span>
+              <span className="text-slate-200">{ev.msg}</span>
             </div>
           );
         })}
         {events.length === 0 && (
-          <p className="text-xs text-slate-600 text-center py-2">Waiting for analysis to start...</p>
+          <p className="text-xs text-slate-200 text-center py-2">Waiting for analysis to start...</p>
         )}
       </div>
     </div>
