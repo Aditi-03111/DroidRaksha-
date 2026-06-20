@@ -4,38 +4,38 @@
 
 @layer base {
   :root {
-    /* Backgrounds — neutral dark, no color tint */
-    --background:     #050505;
-    --surface:        #0D0D0D;
-    --surface-raised: #141414;
+    /* Backgrounds — clean dark theme matching target */
+    --background:     transparent;
+    --surface:        rgba(0, 0, 0, 0.2);
+    --surface-raised: rgba(20, 20, 20, 0.3);
 
     /* Borders */
-    --border:        #252525;
-    --border-active: #00ed3f;
+    --border:        rgba(255, 255, 255, 0.15);
+    --border-active: rgba(255, 255, 255, 0.8);
 
     /* Text */
-    --text-primary:   #00ed3f;
-    --text-secondary: #E0D5BE;
-    --text-muted:     #8A8A96;
-    --text-warning:   #ff8800;
-    --text-danger:    #cc2200;
+    --text-primary:   #ffffff;
+    --text-secondary: #f8fafc;
+    --text-muted:     #94a3b8;
+    --text-warning:   #f59e0b;
+    --text-danger:    #ef4444;
 
     /* Accent shortcuts */
-    --accent-primary:   #00ed3f;
-    --accent-secondary: #4466cc;
-    --accent-warning:   #ff8800;
+    --accent-primary:   #ffffff;
+    --accent-secondary: #94a3b8;
+    --accent-warning:   #f59e0b;
 
-    /* Glows */
-    --glow-primary:  0 0 8px rgba(0, 237, 63, 0.4), 0 0 20px rgba(0, 237, 63, 0.2);
-    --glow-warning:  0 0 8px rgba(255, 136, 0, 0.4), 0 0 20px rgba(255, 136, 0, 0.2);
-    --glow-danger:    0 0 8px rgba(204, 34, 0, 0.4), 0 0 20px rgba(204, 34, 0, 0.2);
+    /* Glows - softened for a cleaner, modern look */
+    --glow-primary:  0 0 8px rgba(255, 255, 255, 0.1), 0 0 20px rgba(255, 255, 255, 0.05);
+    --glow-warning:  0 0 8px rgba(245, 158, 11, 0.3), 0 0 20px rgba(245, 158, 11, 0.15);
+    --glow-danger:   0 0 8px rgba(239, 68, 68, 0.3), 0 0 20px rgba(239, 68, 68, 0.15);
 
-    /* Text glows */
-    --text-glow-primary:  0 0 6px rgba(0, 237, 63, 0.6), 0 0 14px rgba(0, 237, 63, 0.3);
-    --text-glow-warning:  0 0 6px rgba(255, 136, 0, 0.6), 0 0 14px rgba(255, 136, 0, 0.3);
-    --text-glow-danger:    0 0 6px rgba(204, 34, 0, 0.6), 0 0 14px rgba(204, 34, 0, 0.3);
+    /* Text glows - softened */
+    --text-glow-primary:  0 0 4px rgba(255, 255, 255, 0.3), 0 0 10px rgba(255, 255, 255, 0.1);
+    --text-glow-warning:  0 0 4px rgba(245, 158, 11, 0.4), 0 0 10px rgba(245, 158, 11, 0.2);
+    --text-glow-danger:   0 0 4px rgba(239, 68, 68, 0.4), 0 0 10px rgba(239, 68, 68, 0.2);
 
-    /* Clip-paths */
+    /* Clip-paths - kept for structural consistency */
     --clip-corner-sm: polygon(6px 0%, 100% 0%, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0% 100%, 0% 6px);
     --clip-corner-md: polygon(10px 0%, 100% 0%, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0% 100%, 0% 10px);
     --clip-corner-lg: polygon(16px 0%, 100% 0%, 100% calc(100% - 16px), calc(100% - 16px) 100%, 0% 100%, 0% 16px);
@@ -48,7 +48,7 @@
   }
   
   body {
-    background-color: var(--background);
+    background-color: #000000;
     color: var(--text-secondary);
     font-family: var(--font-mono);
     @apply antialiased;
@@ -94,7 +94,7 @@
 
   /* ─── Glass & Panels ────────────────────────────────────────────── */
   .glass-panel {
-    @apply bg-surface border border-border relative;
+    @apply bg-black/30 backdrop-blur-md border border-white/10 relative shadow-xl;
   }
   
   /* Corner Brackets Effect */
@@ -158,7 +158,7 @@
 
   /* ─── Buttons ────────────────────────────────────────────────────── */
   .btn-hex {
-    @apply relative inline-flex items-center justify-center bg-transparent border border-border text-secondary uppercase font-mono tracking-widest transition-all duration-300 overflow-hidden hover:border-border-active hover:text-primary focus:outline-none;
+    @apply relative inline-flex items-center justify-center bg-white/5 backdrop-blur-md border border-white/20 text-white uppercase font-mono tracking-widest transition-all duration-300 overflow-hidden hover:bg-white hover:text-black focus:outline-none;
     clip-path: var(--clip-corner-md);
   }
   .btn-hex::before {
@@ -168,7 +168,7 @@
     left: -100%;
     width: 100%;
     height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(0, 237, 63, 0.2), transparent);
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
     transition: left 0.5s;
   }
   .btn-hex:hover::before {
@@ -176,7 +176,7 @@
   }
 
   .btn-hex-primary {
-    @apply bg-[rgba(0,237,63,0.1)] border-border-active text-primary hover:bg-border-active hover:text-background;
+    @apply bg-white border-transparent text-black hover:bg-gray-200 hover:text-black;
   }
 
   /* ─── Badges & Inputs ───────────────────────────────────────────── */
@@ -200,14 +200,14 @@
   .risk-critical { color: var(--text-danger); }
   .risk-high     { color: var(--text-warning); }
   .risk-medium   { color: #fbbf24; }
-  .risk-low      { color: var(--text-primary); }
-  .risk-safe     { color: var(--accent-secondary); }
+  .risk-low      { color: #10b981; }
+  .risk-safe     { color: #3b82f6; }
 
-  .risk-badge-critical { @apply bg-[rgba(204,34,0,0.1)] text-danger border border-[rgba(204,34,0,0.3)]; box-shadow: var(--glow-danger); }
-  .risk-badge-high     { @apply bg-[rgba(255,136,0,0.1)] text-warning border border-[rgba(255,136,0,0.3)]; box-shadow: var(--glow-warning); }
+  .risk-badge-critical { @apply bg-[rgba(239,68,68,0.1)] text-danger border border-[rgba(239,68,68,0.3)]; box-shadow: var(--glow-danger); }
+  .risk-badge-high     { @apply bg-[rgba(245,158,11,0.1)] text-warning border border-[rgba(245,158,11,0.3)]; box-shadow: var(--glow-warning); }
   .risk-badge-medium   { @apply bg-[rgba(251,191,36,0.1)] text-[#fbbf24] border border-[rgba(251,191,36,0.3)]; }
-  .risk-badge-low      { @apply bg-[rgba(0,237,63,0.1)] text-primary border border-[rgba(0,237,63,0.3)]; box-shadow: var(--glow-primary); }
-  .risk-badge-safe     { @apply bg-[rgba(68,102,204,0.1)] text-secondary border border-[rgba(68,102,204,0.3)]; }
+  .risk-badge-low      { @apply bg-[rgba(16,185,129,0.1)] text-[#10b981] border border-[rgba(16,185,129,0.3)]; }
+  .risk-badge-safe     { @apply bg-[rgba(59,130,246,0.1)] text-[#3b82f6] border border-[rgba(59,130,246,0.3)]; }
 }
 
 /* ─── Animations ──────────────────────────────────────────────────── */

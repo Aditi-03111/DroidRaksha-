@@ -7,7 +7,6 @@ import { getStats, uploadApk } from "@/lib/api";
 import type { DashboardStats } from "@/lib/types";
 import DropZone from "@/components/DropZone";
 import AnalysisProgress from "@/components/AnalysisProgress";
-import InteractiveMesh from "@/components/InteractiveMesh";
 
 type UploadState =
   | { phase: "idle" }
@@ -59,7 +58,6 @@ export default function Home() {
 
   return (
     <div className="relative min-h-screen bg-transparent">
-      <InteractiveMesh />
       {/* Navigation */}
       <nav className="fixed top-0 left-0 w-full z-50 transition-all duration-300 backdrop-blur-xl border-b border-transparent bg-background/40 py-4">
         <div className="w-full flex justify-between items-center px-6 lg:px-12">

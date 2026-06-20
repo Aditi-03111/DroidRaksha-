@@ -35,6 +35,8 @@ export const metadata: Metadata = {
   },
 };
 
+import Aurora from "@/components/Aurora";
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -42,8 +44,13 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={`${ibm_plex_mono.variable} ${space_mono.variable} dark`}>
-      <body className="min-h-screen bg-background text-secondary antialiased font-mono">
-        {children}
+      <body className="min-h-screen bg-black text-secondary antialiased font-mono overflow-x-hidden">
+        <div className="fixed inset-0 w-full h-full z-0">
+          <Aurora colorStops={["#475569", "#64748b", "#475569"]} amplitude={1.2} blend={0.6} speed={0.8} />
+        </div>
+        <div className="relative z-10">
+          {children}
+        </div>
       </body>
     </html>
   );
