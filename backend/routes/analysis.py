@@ -1,11 +1,13 @@
 """
 Analysis retrieval routes — P2: File Tree + Manifest XML endpoints.
+P6: JADX Decompilation endpoints.
 """
 from __future__ import annotations
 import os
 from fastapi import APIRouter, HTTPException
 from backend.db import database
 from backend.engines import file_tree as ft
+from backend.engines import jadx_decompiler
 
 router = APIRouter()
 
@@ -90,3 +92,36 @@ async def get_manifest_xml(analysis_id: str):
 
     result = ft.get_manifest_xml(apk_path)
     return result
+
+
+@router.get("/analysis/{analysis_id}/decompile")
+async def get_decompile_tree(analysis_id: str):
+    """
+    P6 — Return the decompiled package/class tree for the APK.
+    Runs jadx on-demand (cached by SHA256) and returns a nested file tree.
+    """
+    apk_path = await _get_apk_path_for(analysis_id)
+    if not apk_path:
+        return {
+            "available": False,
+            "tree": [],
+            "error": "APK file not available on disk. Re-upload to enable decompilation.",
+        }
+    return jadx_decompiler.get_class_tree(apk_path)
+
+
+@router.get("/analysis/{analysis_id}/decompile/{class_path:path}")
+async def get_class_source(analysis_id: str, class_path: str):
+    """
+    P6 — Return the decompiled Java source for a specific class file.
+    `class_path` is relative to the sources root, e.g. "com/example/MainActivity.java"
+    """
+    apk_path = await _get_apk_path_for(analysis_id)
+    if not apk_path:
+        return {
+            "available": False,
+            "class_path": class_path,
+            "source": None,
+            "error": "APK file not available on disk. Re-upload to enable decompilation.",
+        }
+    return jadx_decompiler.get_class_source(apk_path, class_path)

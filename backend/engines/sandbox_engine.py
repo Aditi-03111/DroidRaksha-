@@ -26,10 +26,18 @@ from typing import Optional
 from loguru import logger
 
 # ── Config ─────────────────────────────────────────────────────────────────────
+JADX_BIN = os.getenv("JADX_BIN", "jadx")          # must be on PATH in container
 SANDBOX_IMAGE   = os.getenv("SANDBOX_IMAGE", "droidraksha-sandbox:latest")
 SANDBOX_DIR     = Path(__file__).parent.parent.parent / "sandbox"
 SANDBOX_TIMEOUT = int(os.getenv("SANDBOX_TIMEOUT", "300"))   # 5 min max per APK
 DOCKER_ENABLED  = os.getenv("SANDBOX_ENABLED", "true").lower() == "true"
+
+# Host-side path for uploads dir — used to build host-resolvable paths for
+# docker run -v mounts. When running inside a container, UPLOAD_DIR is the
+# container-internal path, but the HOST daemon needs the real host path.
+# Set UPLOADS_HOST_PATH in docker-compose to the absolute host path.
+UPLOAD_DIR_CONTAINER = os.getenv("UPLOAD_DIR", "./uploads")   # path inside backend container
+UPLOAD_DIR_HOST      = os.getenv("UPLOADS_HOST_PATH", UPLOAD_DIR_CONTAINER)  # path on host
 
 
 # ── Docker availability check ──────────────────────────────────────────────────
@@ -88,88 +96,118 @@ def _run_container(apk_path: str) -> dict:
     """
     Spin up sandbox container, mount APK, collect results.
     Returns the parsed JSON result from the container.
+
+    IMPORTANT — Docker-in-Docker path translation:
+    When the backend runs inside Docker, `apk_path` is a container-internal
+    path (e.g. /app/uploads/abc.apk). We must translate it to the equivalent
+    HOST path so the HOST Docker daemon can mount it into the sandbox container.
     """
     apk_abs = Path(apk_path).resolve()
     if not apk_abs.exists():
         return {"sandbox_available": False, "error": f"APK not found: {apk_path}"}
 
-    # Use a temp dir for output (container writes result.json here)
-    with tempfile.TemporaryDirectory() as tmp_out:
-        out_dir  = Path(tmp_out)
-        out_file = out_dir / "result.json"
+    # ── Translate container path → host path ─────────────────────────────────
+    # If UPLOADS_HOST_PATH is set, replace the container uploads prefix with
+    # the host uploads prefix so the HOST daemon can resolve the volume mount.
+    upload_container = Path(UPLOAD_DIR_CONTAINER).resolve()
+    upload_host      = Path(UPLOAD_DIR_HOST).resolve() if Path(UPLOAD_DIR_HOST).is_absolute() \
+                       else (Path.cwd() / UPLOAD_DIR_HOST).resolve()
 
-        # Container name for tracking
-        container_name = f"droidraksha-sandbox-{uuid.uuid4().hex[:8]}"
+    try:
+        # Will succeed only if apk_abs is under upload_container
+        rel = apk_abs.relative_to(upload_container)
+        apk_host_path = upload_host / rel
+    except ValueError:
+        # APK is not in the uploads dir — use as-is (may fail if not on host)
+        apk_host_path = apk_abs
 
-        # Build docker run command
-        # On Windows, paths need to be in proper format
-        apk_mount = str(apk_abs).replace("\\", "/")
-        out_mount = str(out_dir).replace("\\", "/")
+    logger.info(f"Sandbox APK host path: {apk_host_path}")
 
-        cmd = [
-            "docker", "run",
-            "--rm",                              # auto-remove after exit
-            "--name", container_name,
-            "--memory", "2g",                    # 2GB RAM limit
-            "--cpus", "2",                       # 2 CPU cores max
-            "--network", "none",                 # no network access from sandbox
-            "--read-only",                       # read-only root filesystem
-            "--tmpfs", "/tmp:size=256m",          # allow writes to /tmp
-            "--tmpfs", "/work:size=1g",           # decompile workspace
-            "-v", f"{apk_abs}:/input/app.apk:ro",  # APK input (read-only)
-            "-v", f"{out_dir}:/output",           # results output
-            SANDBOX_IMAGE,
-            "--apk", "/input/app.apk",
-            "--out", "/output/result.json",
-        ]
+    # Use a named temp dir under uploads so it's on the same host-accessible volume
+    tmp_out  = Path(UPLOAD_DIR_CONTAINER) / f"sandbox_out_{uuid.uuid4().hex[:8]}"
+    tmp_out.mkdir(parents=True, exist_ok=True)
+    out_file = tmp_out / "result.json"
 
-        logger.info(f"Starting sandbox container {container_name} for {apk_abs.name}")
-        start = time.time()
+    # Host-side output dir
+    try:
+        rel_out = tmp_out.relative_to(upload_container)
+        out_host_path = upload_host / rel_out
+    except ValueError:
+        out_host_path = tmp_out
 
-        try:
-            proc = subprocess.run(
-                cmd,
-                capture_output=True,
-                text=True,
-                timeout=SANDBOX_TIMEOUT,
-            )
+    # Container name for tracking
+    container_name = f"droidraksha-sandbox-{uuid.uuid4().hex[:8]}"
 
-            elapsed = round(time.time() - start, 1)
-            logger.info(f"Container {container_name} exited in {elapsed}s (rc={proc.returncode})")
+    # Format paths for docker CLI (forward slashes, Windows compatible)
+    apk_mount = str(apk_host_path).replace("\\", "/")
+    out_mount = str(out_host_path).replace("\\", "/")
 
-            if proc.stdout:
-                for line in proc.stdout.strip().split("\n"):
-                    logger.debug(f"[container] {line}")
+    cmd = [
+        "docker", "run",
+        "--rm",                              # auto-remove after exit
+        "--name", container_name,
+        "--memory", "2g",                    # 2GB RAM limit
+        "--cpus", "2",                       # 2 CPU cores max
+        "--network", "none",                 # no network access from sandbox
+        "--tmpfs", "/tmp:size=256m",          # allow writes to /tmp
+        "--tmpfs", "/work:size=1g",           # decompile workspace
+        "-v", f"{apk_mount}:/input/app.apk:ro",  # APK input (read-only)
+        "-v", f"{out_mount}:/output",             # results output
+        SANDBOX_IMAGE,
+        "--apk", "/input/app.apk",
+        "--out", "/output/result.json",
+    ]
 
-            if not out_file.exists():
-                return {
-                    "sandbox_available": False,
-                    "error": f"Container produced no output. stderr: {proc.stderr[-300:]}",
-                    "container_logs": proc.stdout[-500:],
-                }
+    logger.info(f"Starting sandbox container {container_name} for {apk_abs.name}")
+    start = time.time()
 
-            raw = out_file.read_text(encoding="utf-8")
-            result = json.loads(raw)
-            result["container_elapsed_sec"] = elapsed
-            return result
+    try:
+        proc = subprocess.run(
+            cmd,
+            capture_output=True,
+            text=True,
+            timeout=SANDBOX_TIMEOUT,
+        )
 
-        except subprocess.TimeoutExpired:
-            # Kill the container if it's still running
-            subprocess.run(["docker", "kill", container_name], capture_output=True)
+        elapsed = round(time.time() - start, 1)
+        logger.info(f"Container {container_name} exited in {elapsed}s (rc={proc.returncode})")
+
+        if proc.stdout:
+            for line in proc.stdout.strip().split("\n"):
+                logger.debug(f"[container] {line}")
+
+        if not out_file.exists():
             return {
                 "sandbox_available": False,
-                "error": f"Sandbox timed out after {SANDBOX_TIMEOUT}s",
+                "error": f"Container produced no output. stderr: {proc.stderr[-300:]}",
+                "container_logs": proc.stdout[-500:],
             }
-        except json.JSONDecodeError as e:
-            return {
-                "sandbox_available": False,
-                "error": f"Invalid JSON from container: {e}",
-            }
-        except Exception as e:
-            return {
-                "sandbox_available": False,
-                "error": f"Container error: {e}",
-            }
+
+        raw = out_file.read_text(encoding="utf-8")
+        result = json.loads(raw)
+        result["container_elapsed_sec"] = elapsed
+        return result
+
+    except subprocess.TimeoutExpired:
+        subprocess.run(["docker", "kill", container_name], capture_output=True)
+        return {
+            "sandbox_available": False,
+            "error": f"Sandbox timed out after {SANDBOX_TIMEOUT}s",
+        }
+    except json.JSONDecodeError as e:
+        return {
+            "sandbox_available": False,
+            "error": f"Invalid JSON from container: {e}",
+        }
+    except Exception as e:
+        return {
+            "sandbox_available": False,
+            "error": f"Container error: {e}",
+        }
+    finally:
+        # Clean up the temp output dir
+        shutil.rmtree(tmp_out, ignore_errors=True)
+
 
 
 # ── Public API ─────────────────────────────────────────────────────────────────

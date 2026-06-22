@@ -20,6 +20,7 @@ import ManifestViewer from "@/components/ManifestViewer";
 import MalwareFamilyBadge from "@/components/MalwareFamilyBadge";
 import NetworkTrafficPanel from "@/components/NetworkTrafficPanel";
 import DynamicAnalysisPanel from "@/components/DynamicAnalysisPanel";
+import DecompilerPanel from "@/components/DecompilerPanel";
 
 export default function ResultsPage() {
   const { id } = useParams() as { id: string };
@@ -27,7 +28,7 @@ export default function ResultsPage() {
   const [result, setResult] = useState<AnalysisResult | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<"overview" | "filetree" | "manifest" | "ml" | "network" | "sandbox">("overview");
+  const [activeTab, setActiveTab] = useState<"overview" | "filetree" | "manifest" | "ml" | "network" | "sandbox" | "decompile">("overview");
 
   useEffect(() => {
     if (!id) return;
@@ -98,7 +99,7 @@ export default function ResultsPage() {
 
         {/* Tab Navigation */}
         <div className="flex gap-2 overflow-x-auto pb-2 border-b border-border">
-          {(["overview", "filetree", "manifest", "ml", "network", "sandbox"] as const).map((tab) => (
+          {(["overview", "filetree", "manifest", "ml", "network", "sandbox", "decompile"] as const).map((tab) => (
             <button
               key={tab}
               id={`tab-${tab}`}
@@ -114,6 +115,7 @@ export default function ResultsPage() {
                 : tab === "manifest" ? "[ MANIFEST ]"
                 : tab === "ml" ? "[ INTELLIGENCE ]"
                 : tab === "network" ? "[ NETWORK ]"
+                : tab === "decompile" ? "[ DECOMPILE ]"
                 : (
                   <span className="flex items-center gap-1.5">
                     {(result.dynamic?.sandbox_available || result.mobsf?.available) && (
@@ -288,6 +290,13 @@ export default function ResultsPage() {
               dynamic={result.dynamic}
               mobsf={result.mobsf}
             />
+          </div>
+        )}
+
+        {/* 🔬 Decompile Tab */}
+        {activeTab === "decompile" && (
+          <div className="space-y-4">
+            <DecompilerPanel analysisId={result.id} />
           </div>
         )}
       </div>

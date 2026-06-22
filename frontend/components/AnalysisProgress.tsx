@@ -53,7 +53,18 @@ export default function AnalysisProgress({ jobId, onComplete, onError }: Props) 
   const logRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const wsUrl = `ws://localhost:8000/api/ws/${jobId}`;
+    let isCleaningUp = false;
+    // Resolve backend API URL dynamically to avoid localhost/127.0.0.1/IP mismatch issues
+    let wsUrl = "";
+    const apiBase = process.env.NEXT_PUBLIC_API_URL;
+    if (apiBase) {
+      const wsBase = apiBase.replace(/^http/, "ws");
+      wsUrl = `${wsBase}/api/ws/${jobId}`;
+    } else {
+      const host = typeof window !== "undefined" ? window.location.hostname : "localhost";
+      wsUrl = `ws://${host}:8000/api/ws/${jobId}`;
+    }
+    
     const ws = new WebSocket(wsUrl);
     wsRef.current = ws;
 
@@ -64,6 +75,10 @@ export default function AnalysisProgress({ jobId, onComplete, onError }: Props) 
     ws.onmessage = (e) => {
       try {
         const event: ProgressEvent = JSON.parse(e.data);
+        if (event.stage === "ping") {
+          return; // ignore keep-alive pings
+        }
+        
         setCurrent(event);
         setEvents((prev) => {
           // Don't duplicate stage events
@@ -82,10 +97,17 @@ export default function AnalysisProgress({ jobId, onComplete, onError }: Props) 
       }
     };
 
-    ws.onerror = () => onError("Connection to analysis server lost");
+    ws.onerror = () => {
+      if (!isCleaningUp) {
+        onError("Connection to analysis server lost");
+      }
+    };
     ws.onclose = () => console.log("WS closed");
 
-    return () => ws.close();
+    return () => {
+      isCleaningUp = true;
+      ws.close();
+    };
   }, [jobId, onComplete, onError]);
 
   // Auto-scroll the log

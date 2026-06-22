@@ -22,8 +22,8 @@ services:
     container_name: droidraksha-mobsf
     ports:
       - "8008:8000"     # MobSF web UI + REST API
-    volumes:
-      - mobsf_data:/home/mobsf/.MobSF
+#    volumes:
+#      - mobsf_data:/home/mobsf/.MobSF
     environment:
       - MOBSF_API_KEY_STATIC=${MOBSF_API_KEY:-droidraksha}
     restart: unless-stopped
@@ -55,12 +55,14 @@ services:
     ports:
       - "8000:8000"
     volumes:
+      - ./backend:/app/backend
       - ./uploads:/app/uploads
       - ./droidraksha.db:/app/droidraksha.db
       - /var/run/docker.sock:/var/run/docker.sock   # Allow sandbox to spawn containers
     environment:
       - DATABASE_URL=sqlite+aiosqlite:///./droidraksha.db
       - UPLOAD_DIR=./uploads
+      - UPLOADS_HOST_PATH=${UPLOADS_HOST_PATH:-./uploads}
       - REDIS_URL=redis://redis:6379/0
       - MOBSF_URL=http://mobsf:8000
       - MOBSF_API_KEY=${MOBSF_API_KEY:-droidraksha}
@@ -82,12 +84,14 @@ services:
     container_name: droidraksha-worker
     command: celery -A backend.worker.celery_app worker --loglevel=info -Q analysis -c 2
     volumes:
+      - ./backend:/app/backend
       - ./uploads:/app/uploads
       - ./droidraksha.db:/app/droidraksha.db
       - /var/run/docker.sock:/var/run/docker.sock
     environment:
       - DATABASE_URL=sqlite+aiosqlite:///./droidraksha.db
       - UPLOAD_DIR=./uploads
+      - UPLOADS_HOST_PATH=${UPLOADS_HOST_PATH:-./uploads}
       - REDIS_URL=redis://redis:6379/0
       - MOBSF_URL=http://mobsf:8000
       - MOBSF_API_KEY=${MOBSF_API_KEY:-droidraksha}

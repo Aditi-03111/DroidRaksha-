@@ -93,7 +93,7 @@ async def get_analysis_by_hash(sha256: str) -> Optional[dict]:
         stmt = select(AnalysisRecord).where(AnalysisRecord.sha256 == sha256).order_by(
             AnalysisRecord.created_at.desc()
         )
-        row = (await session.execute(stmt)).scalar_one_or_none()
+        row = (await session.execute(stmt)).scalars().first()
         if row:
             return json.loads(row.result_json)
         return None

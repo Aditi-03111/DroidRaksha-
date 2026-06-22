@@ -59,31 +59,67 @@ async def analysis_progress_ws(websocket: WebSocket, job_id: str):
             "msg": "Analysis queued — waiting for worker...",
         })
 
+        # Start background ping/keep-alive task to prevent connection timeouts during long tasks
+        async def send_pings():
+            try:
+                while True:
+                    await asyncio.sleep(20)
+                    await websocket.send_json({"stage": "ping", "pct": 0, "msg": "keep-alive"})
+            except asyncio.CancelledError:
+                pass
+            except Exception:
+                pass
+
+        logger.info(f"Subscribing to redis for {job_id[:8]}")
         pubsub = redis.pubsub()
         await pubsub.subscribe(f"progress:{job_id}")
+        logger.info(f"Subscribed successfully for {job_id[:8]}")
 
-        # Wait up to 10 minutes for the job to complete
-        deadline = asyncio.get_event_loop().time() + 600
+        ping_task = asyncio.create_task(send_pings())
 
-        async for message in pubsub.listen():
-            if asyncio.get_event_loop().time() > deadline:
-                await websocket.send_json({"stage": "error", "pct": 0, "msg": "Analysis timed out"})
-                break
+        try:
+            # Wait up to 10 minutes for the job to complete
+            deadline = asyncio.get_event_loop().time() + 600
 
-            if message["type"] != "message":
-                continue
+            import redis.exceptions
+            while True:
+                if asyncio.get_event_loop().time() > deadline:
+                    await websocket.send_json({"stage": "error", "pct": 0, "msg": "Analysis timed out"})
+                    break
 
+                try:
+                    message = await pubsub.get_message(ignore_subscribe_messages=True, timeout=1.0)
+                except redis.exceptions.TimeoutError:
+                    continue
+                except Exception as e:
+                    # other redis errors
+                    logger.warning(f"Redis pubsub error: {e}")
+                    await asyncio.sleep(1)
+                    continue
+
+                if message is None:
+                    await asyncio.sleep(0.1)
+                    continue
+
+                if message["type"] != "message":
+                    continue
+
+                try:
+                    event = json.loads(message["data"])
+                except (json.JSONDecodeError, TypeError):
+                    continue
+
+                await websocket.send_json(event)
+
+                if event.get("stage") in ("complete", "error"):
+                    break
+        finally:
+            ping_task.cancel()
             try:
-                event = json.loads(message["data"])
-            except (json.JSONDecodeError, TypeError):
-                continue
-
-            await websocket.send_json(event)
-
-            if event.get("stage") in ("complete", "error"):
-                break
-
-        await pubsub.unsubscribe(f"progress:{job_id}")
+                # Wrap unsubscribe to prevent it from masking WebSocketDisconnect if it times out
+                await pubsub.unsubscribe(f"progress:{job_id}")
+            except Exception as e:
+                logger.warning(f"Error unsubscribing from redis: {e}")
 
     except WebSocketDisconnect:
         logger.info(f"WS disconnected for job {job_id[:8]}")

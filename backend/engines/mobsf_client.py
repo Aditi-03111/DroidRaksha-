@@ -104,6 +104,17 @@ async def _get_report(file_hash: str) -> Optional[dict]:
 
 # ── Result normalizer ─────────────────────────────────────────────────────────
 
+def _as_list(value) -> list:
+    """Safely coerce a value to list — handles dict, list, str, None."""
+    if value is None:
+        return []
+    if isinstance(value, list):
+        return value
+    if isinstance(value, dict):
+        return list(value.values())
+    return [value]
+
+
 def _normalize_report(raw: dict) -> dict:
     """
     Extract the key fields we care about from MobSF's verbose JSON report.
@@ -147,10 +158,10 @@ def _normalize_report(raw: dict) -> dict:
         "dangerous_perms":  dangerous_perms[:20],
         "findings":         findings[:30],
         "apkid":            apkid,  # packer/obfuscation detection
-        "strings":          raw.get("strings", [])[:50],
-        "urls":             raw.get("urls", [])[:30],
-        "emails":           raw.get("emails", [])[:10],
-        "firebase_urls":    raw.get("firebase_urls", [])[:10],
+        "strings":          _as_list(raw.get("strings"))[:50],
+        "urls":             _as_list(raw.get("urls"))[:30],
+        "emails":           _as_list(raw.get("emails"))[:10],
+        "firebase_urls":    _as_list(raw.get("firebase_urls"))[:10],
         "playstore_details": raw.get("playstore_details", {}),
         "certificate_info": raw.get("certificate_info", {}),
         "mobsf_version":    raw.get("mobsf_version", ""),
