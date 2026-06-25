@@ -15,7 +15,7 @@ from backend.engines import (
     yara_scanner,
     obfuscation,
 )
-from backend.intel import india_ioc, virustotal, abuseipdb
+from backend.intel import india_ioc, virustotal, abuseipdb, asn_lookup, otx
 from backend.scoring import risk_scorer
 from backend.ai import narrative as ai_narrative_module
 
@@ -78,6 +78,11 @@ async def run(apk_path: str, filename: str) -> dict:
     ip_list = [item["value"] for item in strings.get("ips", [])]
     abuse = await abuseipdb.analyze(ip_list)
 
+    domains = [item.get("value", "") for item in strings.get("urls", []) if item.get("value")]
+    logger.info("Running ASN and OTX lookups...")
+    asn = await asn_lookup.analyze(ip_list)
+    otx_result = await otx.analyze(ip_list, domains)
+
     logger.info("Calculating risk score...")
     risk = risk_scorer.calculate(manifest, strings, cert, yara, obf, vt, abuse, ioc)
 
@@ -133,6 +138,19 @@ async def run(apk_path: str, filename: str) -> dict:
     except Exception as e:
         mobsf_result = {"available": False, "error": str(e)}
 
+    logger.info("Running static/dynamic correlation...")
+    from backend.engines import correlation_engine, dga_detector
+    correlation = correlation_engine.correlate(
+        manifest=manifest,
+        strings=strings,
+        dynamic=sandbox_result,
+        network={},
+        india_ioc=ioc,
+        mobsf=mobsf_result,
+        threat_intel={"virustotal": vt, "abuseipdb": abuse, "asn": asn, "otx": otx_result},
+    )
+    dga_static = dga_detector.analyze_domains(domains)
+
     result = {
         "id": analysis_id,
         "status": "complete",
@@ -146,6 +164,9 @@ async def run(apk_path: str, filename: str) -> dict:
         "obfuscation": obf,
         "virustotal": vt,
         "abuseipdb": abuse,
+        "asn": asn,
+        "otx": otx_result,
+        "dga_static": dga_static,
         "india_ioc": ioc,
         "risk": risk,
         "mitre": mitre,
@@ -161,6 +182,7 @@ async def run(apk_path: str, filename: str) -> dict:
         # ── Dynamic Sandbox ──
         "dynamic": sandbox_result,
         "mobsf": mobsf_result,
+        "correlation": correlation,
     }
 
     logger.info(f"Analysis complete: {analysis_id} | Risk: {risk['risk_level']} ({risk['score']}/100)")

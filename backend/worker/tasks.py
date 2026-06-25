@@ -64,7 +64,7 @@ def run_analysis_task(self, apk_path: str, filename: str, job_id: str) -> dict:
         yara_scanner,
         obfuscation,
     )
-    from backend.intel import india_ioc, virustotal, abuseipdb
+    from backend.intel import india_ioc, virustotal, abuseipdb, asn_lookup, otx
     from backend.scoring import risk_scorer
     from backend.ai import narrative as ai_narrative_module
     from backend.ai import (
@@ -122,6 +122,13 @@ def run_analysis_task(self, apk_path: str, filename: str, job_id: str) -> dict:
         vt = _run_async(virustotal.analyze(apk_path))
         ip_list = [item["value"] for item in strings.get("ips", [])]
         abuse = _run_async(abuseipdb.analyze(ip_list))
+        domains = []
+        for item in strings.get("urls", []):
+            value = item.get("value", "")
+            if value:
+                domains.append(value)
+        asn = _run_async(asn_lookup.analyze(ip_list))
+        otx_result = _run_async(otx.analyze(ip_list, domains))
 
         # ── Stage 9: Risk Score (82%) ────────────────────────────────────
         _publish(job_id, {"stage": "risk_score", "pct": 82, "msg": "Calculating risk score..."})
@@ -173,6 +180,20 @@ def run_analysis_task(self, apk_path: str, filename: str, job_id: str) -> dict:
         except Exception as mobsf_err:
             mobsf_result = {"available": False, "error": str(mobsf_err)}
 
+        # ── Stage 18: Correlation Engine ─────────────────────────────────
+        _publish(job_id, {"stage": "correlation", "pct": 99, "msg": "Correlating static and dynamic indicators..."})
+        from backend.engines import correlation_engine, dga_detector
+        correlation = correlation_engine.correlate(
+            manifest=manifest,
+            strings=strings,
+            dynamic=sandbox_result,
+            network={},
+            india_ioc=ioc,
+            mobsf=mobsf_result,
+            threat_intel={"virustotal": vt, "abuseipdb": abuse, "asn": asn, "otx": otx_result},
+        )
+        dga_static = dga_detector.analyze_domains(domains)
+
         # Use agent court narrative as primary AI narrative
         ai_text = agent_verdict.get("court_narrative", "")
         recommendations = agent_verdict.get("recommendations", [])
@@ -198,6 +219,9 @@ def run_analysis_task(self, apk_path: str, filename: str, job_id: str) -> dict:
             "obfuscation": obf,
             "virustotal": vt,
             "abuseipdb": abuse,
+            "asn": asn,
+            "otx": otx_result,
+            "dga_static": dga_static,
             "india_ioc": ioc,
             "risk": risk,
             "mitre": mitre,
@@ -213,6 +237,7 @@ def run_analysis_task(self, apk_path: str, filename: str, job_id: str) -> dict:
             # ── Dynamic Sandbox ────────────────────────────────────────────
             "dynamic": sandbox_result,
             "mobsf": mobsf_result,
+            "correlation": correlation,
         }
 
         # ── Save to DB (99%) ──────────────────────────────────────────────

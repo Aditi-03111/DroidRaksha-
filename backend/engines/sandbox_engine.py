@@ -124,7 +124,9 @@ def _run_container(apk_path: str) -> dict:
     logger.info(f"Sandbox APK host path: {apk_host_path}")
 
     # Use a named temp dir under uploads so it's on the same host-accessible volume
-    tmp_out  = Path(UPLOAD_DIR_CONTAINER) / f"sandbox_out_{uuid.uuid4().hex[:8]}"
+    # IMPORTANT: Docker requires absolute paths for -v mounts — resolve relative dirs
+    upload_dir_abs = Path(UPLOAD_DIR_CONTAINER).resolve()
+    tmp_out  = upload_dir_abs / f"sandbox_out_{uuid.uuid4().hex[:8]}"
     tmp_out.mkdir(parents=True, exist_ok=True)
     out_file = tmp_out / "result.json"
 

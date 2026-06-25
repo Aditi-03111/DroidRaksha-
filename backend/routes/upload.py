@@ -175,6 +175,21 @@ async def upload_pcap(
     if linked_result and network.get("available"):
         linked_result["network"] = network
         linked_result["pcap_id"] = pcap_id
+        from backend.engines import correlation_engine
+        linked_result["correlation"] = correlation_engine.correlate(
+            manifest=linked_result.get("manifest", {}),
+            strings=linked_result.get("strings", {}),
+            dynamic=linked_result.get("dynamic", {}),
+            network=network,
+            india_ioc=linked_result.get("india_ioc", {}),
+            mobsf=linked_result.get("mobsf", {}),
+            threat_intel={
+                "virustotal": linked_result.get("virustotal", {}),
+                "abuseipdb": linked_result.get("abuseipdb", {}),
+                "asn": linked_result.get("asn", {}),
+                "otx": linked_result.get("otx", {}),
+            },
+        )
         await database.save_analysis(linked_result)
         logger.info(f"Patched analysis {analysis_id} with PCAP network data")
 

@@ -6,31 +6,9 @@ import {
   ChevronDown, ChevronUp, Activity, Search, Zap,
   Radio, Server, Lock
 } from "lucide-react";
+import type { NetworkData } from "@/lib/types";
 
 // ── Types ──────────────────────────────────────────────────────────────────
-
-interface DnsEntry   { domain: string; count: number; }
-interface HttpHost   { host: string; count: number; }
-interface RemoteIP   { ip: string; count: number; ports: number[]; first_seen: string; }
-interface BeaconAlert {
-  ip: string; contact_count: number; avg_interval_sec: number;
-  jitter_cv: number; confidence: "HIGH" | "MEDIUM"; description: string;
-}
-interface DgaSuspect { domain: string; query_count: number; entropy: number; }
-interface IocHit     { type: "ip" | "domain"; value: string; reason: string; severity: string; }
-
-interface NetworkSummary {
-  total_packets: number; parse_errors: number; unique_remote_ips: number;
-  dns_query_count: number; http_host_count: number; tls_sni_count: number;
-  beaconing_alerts: number; dga_suspects: number; india_hits: number;
-}
-
-interface NetworkData {
-  available: boolean; error?: string; pcap_risk: string;
-  summary: NetworkSummary; dns_queries: DnsEntry[]; http_hosts: HttpHost[];
-  tls_sni: string[]; remote_ips: RemoteIP[]; beaconing_alerts: BeaconAlert[];
-  dga_suspects: DgaSuspect[]; india_ioc_hits: IocHit[];
-}
 
 interface Props {
   analysisId: string;

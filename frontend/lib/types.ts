@@ -272,6 +272,72 @@ export interface MobSFResult {
   error?: string;
 }
 
+export interface DgaSuspect {
+  domain: string;
+  query_count: number;
+  entropy: number;
+  score?: number;
+  is_dga?: boolean;
+  reasons?: string[];
+}
+
+export interface BeaconAlert {
+  ip: string;
+  contact_count: number;
+  avg_interval_sec: number;
+  jitter_cv: number;
+  confidence: "HIGH" | "MEDIUM";
+  description: string;
+}
+
+export interface NetworkData {
+  available: boolean;
+  error?: string;
+  pcap_risk: string;
+  summary: {
+    total_packets: number;
+    parse_errors: number;
+    unique_remote_ips: number;
+    dns_query_count: number;
+    http_host_count: number;
+    tls_sni_count: number;
+    beaconing_alerts: number;
+    dga_suspects: number;
+    india_hits: number;
+  };
+  dns_queries: Array<{ domain: string; count: number }>;
+  http_hosts: Array<{ host: string; count: number }>;
+  http_requests?: Array<{ host: string; method: string; uri: string }>;
+  tls_sni: string[];
+  remote_ips: Array<{ ip: string; count: number; ports: number[]; first_seen: string }>;
+  beaconing_alerts: BeaconAlert[];
+  dga_suspects: DgaSuspect[];
+  india_ioc_hits: Array<{ type: "ip" | "domain"; value: string; reason: string; severity: string }>;
+}
+
+export interface CorrelationFinding {
+  type: "domain" | "ip" | "india_ioc";
+  value: string;
+  severity: "CRITICAL" | "HIGH" | "MEDIUM" | "LOW";
+  explanation: string;
+  static_source?: string;
+  dynamic_source?: string;
+}
+
+export interface CorrelationResult {
+  available: boolean;
+  score: number;
+  severity: "CRITICAL" | "HIGH" | "MEDIUM" | "LOW";
+  summary: string;
+  matches: CorrelationFinding[];
+  hidden_runtime_indicators: CorrelationFinding[];
+  threat_intel_overlaps: CorrelationFinding[];
+  behaviour_links: string[];
+  static_counts: { domains: number; ips: number };
+  dynamic_counts: { domains: number; ips: number };
+  threat_intel?: Record<string, unknown>;
+}
+
 export interface AnalysisResult {
   id: string;
   status: "complete" | "pending" | "error";
@@ -298,7 +364,16 @@ export interface AnalysisResult {
   ai_narrative: string;
   ai_recommendations: string[];
   // Network
-  network?: any;
+  network?: NetworkData;
+  correlation?: CorrelationResult;
+  dga_static?: {
+    available: boolean;
+    total_domains: number;
+    suspect_count: number;
+    suspects: DgaSuspect[];
+  };
+  asn?: Record<string, unknown>;
+  otx?: Record<string, unknown>;
   // Dynamic Sandbox
   dynamic?: DynamicSandbox;
   mobsf?: MobSFResult;

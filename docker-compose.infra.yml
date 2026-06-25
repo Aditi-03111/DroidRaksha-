@@ -1,0 +1,34 @@
+# Minimal compose — only infra services in Docker
+# Run backend + worker LOCALLY with Python (anaconda)
+# This avoids building the 5.78 GB backend image
+
+services:
+
+  # ── MobSF Static Analyzer ─────────────────────────────────────────────────
+  mobsf:
+    image: opensecurity/mobile-security-framework-mobsf:latest
+    container_name: droidraksha-mobsf
+    ports:
+      - "8008:8000"
+    environment:
+      - MOBSF_API_KEY_STATIC=${MOBSF_API_KEY:-droidraksha}
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 90s
+
+  # ── Redis Broker ──────────────────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: droidraksha-redis
+    ports:
+      - "6379:6379"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3

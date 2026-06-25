@@ -146,6 +146,29 @@ def _grid_table(E, rows: list[list], col_widths: list):
     E.append(Spacer(1, 0.2 * cm))
 
 
+def _string_items(strings: dict | list) -> list[dict]:
+    if isinstance(strings, list):
+        return strings
+    if not isinstance(strings, dict):
+        return []
+    items: list[dict] = []
+    for key in ("ips", "urls", "emails", "crypto_keys", "suspicious_strings"):
+        for item in strings.get(key, []) or []:
+            if isinstance(item, dict):
+                items.append({"type": item.get("type", key), **item})
+    for value in strings.get("base64_strings", []) or []:
+        items.append({"type": "base64", "value": str(value), "risk": "medium"})
+    return items
+
+
+def _yara_items(yara: dict | list) -> list[dict]:
+    if isinstance(yara, list):
+        return yara
+    if isinstance(yara, dict):
+        return yara.get("matches", []) or []
+    return []
+
+
 # ── Main PDF builder ──────────────────────────────────────────────────────────
 
 def _build_pdf(data: dict) -> bytes:
@@ -163,18 +186,25 @@ def _build_pdf(data: dict) -> bytes:
     hashes      = data.get("hashes", {})
     risk        = data.get("risk", {})
     cert        = data.get("certificate", {})
-    yara        = data.get("yara", [])
+    yara        = _yara_items(data.get("yara", []))
     obf         = data.get("obfuscation", {})
     vt          = data.get("virustotal", {})
     ioc         = data.get("india_ioc", {})
     mitre       = data.get("mitre", [])
-    strings     = data.get("strings", [])
+    strings_raw = data.get("strings", [])
+    strings     = _string_items(strings_raw)
     ml_cls      = data.get("ml_classification", {})
     xgb         = data.get("xgboost", {})
     malbert     = data.get("malbert", {})
     anomaly     = data.get("anomaly", {})
     agent       = data.get("agent_verdict", {})
     network     = data.get("network", {})
+    dynamic     = data.get("dynamic", {})
+    mobsf       = data.get("mobsf", {})
+    correlation = data.get("correlation", {})
+    asn         = data.get("asn", {})
+    otx_result  = data.get("otx", {})
+    dga_static  = data.get("dga_static", {})
 
     pkg         = manifest.get("package_name", "Unknown Package")
     score       = risk.get("score", 0)
@@ -447,8 +477,43 @@ def _build_pdf(data: dict) -> bytes:
                 [9 * cm, 2.5 * cm, 2.5 * cm],
             )
 
-    # ── 10. Obfuscation ───────────────────────────────────────────────────────
-    E.append(Paragraph("10. Obfuscation & Packing", S["section"]))
+    # ── 10. Static/Dynamic Correlation ───────────────────────────────────────
+    E.append(PageBreak())
+    E.append(Paragraph("10. Static Dynamic Correlation", S["section"]))
+    E.append(_hr())
+    if correlation:
+        _kv_table(E, [
+            ["Correlation Score", f"{correlation.get('score', 0)} / 100"],
+            ["Severity", correlation.get("severity", "UNKNOWN")],
+            ["Summary", correlation.get("summary", "—")],
+            ["Static Domains", str((correlation.get("static_counts") or {}).get("domains", 0))],
+            ["Runtime Domains", str((correlation.get("dynamic_counts") or {}).get("domains", 0))],
+        ])
+        matches = correlation.get("matches", [])
+        if matches:
+            E.append(Paragraph("Confirmed Static Runtime Matches", S["sub"]))
+            _grid_table(E,
+                [["Type", "Indicator", "Severity", "Explanation"]] + [
+                    [m.get("type", ""), m.get("value", ""), m.get("severity", ""), str(m.get("explanation", ""))[:90]]
+                    for m in matches[:20]
+                ],
+                [2 * cm, 5 * cm, 2.5 * cm, 6.5 * cm],
+            )
+        hidden = correlation.get("hidden_runtime_indicators", [])
+        if hidden:
+            E.append(Paragraph("Runtime-Only Indicators", S["sub"]))
+            _grid_table(E,
+                [["Type", "Indicator", "Severity"]] + [
+                    [m.get("type", ""), m.get("value", ""), m.get("severity", "")]
+                    for m in hidden[:25]
+                ],
+                [2 * cm, 10 * cm, 3 * cm],
+            )
+    else:
+        E.append(Paragraph("No correlation data stored for this analysis.", S["body"]))
+
+    # ── 11. Obfuscation ───────────────────────────────────────────────────────
+    E.append(Paragraph("11. Obfuscation & Packing", S["section"]))
     E.append(_hr())
     _kv_table(E, [
         ["Obfuscation Score",  f"{obf.get('score', 0)} / 100"],
@@ -458,6 +523,112 @@ def _build_pdf(data: dict) -> bytes:
         ["DexClassLoader",     "YES" if obf.get("has_dex_classloader") else "No"],
         ["Native Libs",        "YES" if obf.get("has_native_libs") else "No"],
         ["String Encryption",  "YES" if obf.get("has_string_encryption") else "No"],
+    ])
+
+    # ── 12. Sandbox Behaviour ────────────────────────────────────────────────
+    E.append(PageBreak())
+    E.append(Paragraph("12. Sandbox Behaviour", S["section"]))
+    E.append(_hr())
+    if dynamic:
+        score_data = dynamic.get("behavioral_score", {}) or {}
+        _kv_table(E, [
+            ["Available", "YES" if dynamic.get("sandbox_available") else "No"],
+            ["Engine", dynamic.get("engine", "—")],
+            ["Score", f"{score_data.get('score', 0)} / 100"],
+            ["Level", score_data.get("level", "—")],
+            ["Summary", score_data.get("summary", dynamic.get("error", "—"))],
+        ])
+        flags = score_data.get("flags", [])
+        if flags:
+            E.append(Paragraph("Behaviour Flags", S["sub"]))
+            E.append(ListFlowable([ListItem(Paragraph(str(flag), S["body"])) for flag in flags[:15]], bulletType="bullet"))
+        smali = dynamic.get("smali_analysis", {}) or {}
+        api_hits = (smali.get("critical_apis", []) or []) + (smali.get("high_apis", []) or [])
+        if api_hits:
+            E.append(Paragraph("Critical / High API Calls", S["sub"]))
+            _grid_table(E,
+                [["API", "File", "Severity"]] + [
+                    [hit.get("api", ""), hit.get("file", ""), hit.get("severity", "")]
+                    for hit in api_hits[:25]
+                ],
+                [5 * cm, 8 * cm, 2.5 * cm],
+            )
+    else:
+        E.append(Paragraph("No sandbox result stored.", S["body"]))
+
+    # ── 13. MobSF Deep Scan ──────────────────────────────────────────────────
+    E.append(Paragraph("13. MobSF Deep Scan", S["section"]))
+    E.append(_hr())
+    if mobsf:
+        _kv_table(E, [
+            ["Available", "YES" if mobsf.get("available") else "No"],
+            ["App Name", mobsf.get("app_name", "—")],
+            ["Package", mobsf.get("package_name", "—")],
+            ["Security Score", str(mobsf.get("security_score", "—"))],
+            ["Error", mobsf.get("error", "—")],
+        ])
+        findings = mobsf.get("findings", []) or []
+        if findings:
+            _grid_table(E,
+                [["Severity", "Finding", "Description"]] + [
+                    [f.get("severity", ""), f.get("title", ""), str(f.get("desc", ""))[:100]]
+                    for f in findings[:25]
+                ],
+                [2.5 * cm, 5 * cm, 8 * cm],
+            )
+    else:
+        E.append(Paragraph("No MobSF result stored.", S["body"]))
+
+    # ── 14. Advanced C2 Intelligence ─────────────────────────────────────────
+    E.append(PageBreak())
+    E.append(Paragraph("14. Advanced C2 Intelligence", S["section"]))
+    E.append(_hr())
+    _kv_table(E, [
+        ["Static DGA Domains", str(dga_static.get("suspect_count", 0) if isinstance(dga_static, dict) else 0)],
+        ["ASN Lookup", "Available" if asn.get("available") else asn.get("error", "Unavailable") if isinstance(asn, dict) else "Unavailable"],
+        ["OTX Lookup", "Available" if otx_result.get("available") else otx_result.get("error", "Unavailable") if isinstance(otx_result, dict) else "Unavailable"],
+    ])
+    suspects = dga_static.get("suspects", []) if isinstance(dga_static, dict) else []
+    if suspects:
+        E.append(Paragraph("Static DGA Suspects", S["sub"]))
+        _grid_table(E,
+            [["Domain", "Entropy", "Score", "Reasons"]] + [
+                [d.get("domain", ""), str(d.get("entropy", "")), str(d.get("score", "")), ", ".join(d.get("reasons", []))]
+                for d in suspects[:20]
+            ],
+            [6 * cm, 2 * cm, 2 * cm, 6 * cm],
+        )
+    asn_rows = asn.get("results", []) if isinstance(asn, dict) else []
+    if asn_rows:
+        E.append(Paragraph("ASN / Hosting Lookup", S["sub"]))
+        _grid_table(E,
+            [["IP", "ASN", "Org", "Country", "Hosting"]] + [
+                [r.get("ip", ""), str(r.get("asn", "—")), r.get("org", "—"), r.get("country", "—"), "YES" if r.get("hosting") else "No"]
+                for r in asn_rows[:20]
+            ],
+            [3 * cm, 2 * cm, 6 * cm, 2 * cm, 2 * cm],
+        )
+
+    # ── 15. Decompiled Code Availability ─────────────────────────────────────
+    E.append(Paragraph("15. Decompiled Code & Evidence Availability", S["section"]))
+    E.append(_hr())
+    E.append(Paragraph(
+        "JADX source view is available inside the DroidRaksha result page when the original APK remains in storage. "
+        "Use the Decompile tab for class-level source review and evidence extraction.",
+        S["body"],
+    ))
+
+    # ── 16. Chain of Custody ─────────────────────────────────────────────────
+    E.append(Paragraph("16. Chain of Custody & Reproducibility", S["section"]))
+    E.append(_hr())
+    _kv_table(E, [
+        ["Analysis ID", analysis_id],
+        ["Filename", filename],
+        ["MD5", hashes.get("md5", "—")],
+        ["SHA-1", hashes.get("sha1", "—")],
+        ["SHA-256", hashes.get("sha256", "—")],
+        ["Generated UTC", now],
+        ["Tool", "DroidRaksha forensic analysis pipeline"],
     ])
 
     # ── Footer ────────────────────────────────────────────────────────────────

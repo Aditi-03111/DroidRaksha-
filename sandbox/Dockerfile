@@ -22,11 +22,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 RUN wget -q \
     https://github.com/iBotPeaches/Apktool/releases/download/v2.9.3/apktool_2.9.3.jar \
     -O /opt/apktool.jar && \
-    wget -q \
-    https://raw.githubusercontent.com/iBotPeaches/Apktool/master/scripts/linux/apktool \
-    -O /usr/local/bin/apktool && \
-    chmod +x /usr/local/bin/apktool && \
-    sed -i 's|jar_file=.*|jar_file=/opt/apktool.jar|' /usr/local/bin/apktool
+    # Write a simple wrapper — avoids the complex path-concat bug in the official script
+    printf '#!/bin/bash\nexec java -Xmx1024M -Dfile.encoding=utf-8 -jar /opt/apktool.jar "$@"\n' \
+    > /usr/local/bin/apktool && \
+    chmod +x /usr/local/bin/apktool
 
 # ── Python packages ────────────────────────────────────────────────────────────
 RUN pip install --no-cache-dir \

@@ -20,6 +20,8 @@ from typing import Optional
 
 from loguru import logger
 
+from backend.engines import beacon_detector, dga_detector
+
 try:
     import dpkt
     DPKT_OK = True
@@ -122,7 +124,8 @@ def _detect_beaconing(ip_timestamps: dict[str, list[float]]) -> list[dict]:
                     f"every {avg_interval:.0f}s (jitter CV={cv:.2f})"
                 ),
             })
-    return alerts
+    detector_result = beacon_detector.analyze_timestamps(ip_timestamps)
+    return detector_result.get("alerts") or alerts
 
 
 def _is_dga(domain: str) -> bool:
@@ -134,8 +137,7 @@ def _is_dga(domain: str) -> bool:
         subdomain = labels[0]
         if len(subdomain) < DGA_MIN_LABEL_LEN:
             return False
-        ent = _entropy(subdomain)
-        return ent >= DGA_ENTROPY_THRESHOLD
+        return dga_detector.score_domain(domain).get("is_dga", False)
     except Exception:
         return False
 
@@ -301,7 +303,7 @@ def analyze(pcap_path: str | Path, india_ioc_data: Optional[dict] = None) -> dic
 
     # DGA detection
     dga_suspects = [
-        {"domain": d, "query_count": c, "entropy": round(_entropy(d.split(".")[0]), 2)}
+        dga_detector.score_domain(d, c)
         for d, c in dns_queries.items()
         if _is_dga(d)
     ]

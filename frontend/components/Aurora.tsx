@@ -5,6 +5,14 @@ import { useEffect, useRef } from "react"
 
 import "./Aurora.css"
 
+type AuroraProps = {
+  colorStops?: string[]
+  amplitude?: number
+  blend?: number
+  speed?: number
+  time?: number
+}
+
 const VERT = `#version 300 es
 in vec2 position;
 void main() {
@@ -111,12 +119,12 @@ void main() {
 }
 `
 
-export default function Aurora(props: any) {
+export default function Aurora(props: AuroraProps) {
   const { colorStops = ["#5227FF", "#7cff67", "#5227FF"], amplitude = 1.0, blend = 0.5 } = props
   const propsRef = useRef(props)
   propsRef.current = props
 
-  const ctnDom = useRef(null)
+  const ctnDom = useRef<HTMLDivElement | null>(null)
 
   useEffect(() => {
     const ctn = ctnDom.current
@@ -133,7 +141,7 @@ export default function Aurora(props: any) {
     gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA)
     gl.canvas.style.backgroundColor = "transparent"
 
-    let program
+    let program: InstanceType<typeof Program> | null = null
 
     function resize() {
       const width = window.innerWidth
@@ -176,6 +184,7 @@ export default function Aurora(props: any) {
     const update = (t: number) => {
       animateId = requestAnimationFrame(update)
       const { time = t * 0.01, speed = 1.0 } = propsRef.current
+      if (!program) return
       program.uniforms.uTime.value = time * speed * 0.1
       program.uniforms.uAmplitude.value = propsRef.current.amplitude ?? 1.0
       program.uniforms.uBlend.value = propsRef.current.blend ?? blend

@@ -62,17 +62,27 @@ async def init_db() -> None:
 async def save_analysis(result: dict) -> None:
     """Persist an analysis result to the database."""
     async with async_session_factory() as session:
-        record = AnalysisRecord(
-            id=result["id"],
-            filename=result.get("filename", "unknown.apk"),
-            sha256=result["hashes"]["sha256"],
-            file_size=result["hashes"]["file_size"],
-            risk_score=result["risk"]["score"],
-            risk_level=result["risk"]["risk_level"],
-            package_name=result.get("manifest", {}).get("package_name", "unknown"),
-            result_json=json.dumps(result),
-        )
-        session.add(record)
+        existing = await session.get(AnalysisRecord, result["id"])
+        if existing:
+            existing.filename = result.get("filename", "unknown.apk")
+            existing.sha256 = result["hashes"]["sha256"]
+            existing.file_size = result["hashes"]["file_size"]
+            existing.risk_score = result["risk"]["score"]
+            existing.risk_level = result["risk"]["risk_level"]
+            existing.package_name = result.get("manifest", {}).get("package_name", "unknown")
+            existing.result_json = json.dumps(result)
+        else:
+            record = AnalysisRecord(
+                id=result["id"],
+                filename=result.get("filename", "unknown.apk"),
+                sha256=result["hashes"]["sha256"],
+                file_size=result["hashes"]["file_size"],
+                risk_score=result["risk"]["score"],
+                risk_level=result["risk"]["risk_level"],
+                package_name=result.get("manifest", {}).get("package_name", "unknown"),
+                result_json=json.dumps(result),
+            )
+            session.add(record)
         await session.commit()
         logger.info(f"Saved analysis {result['id']} to DB")
 
