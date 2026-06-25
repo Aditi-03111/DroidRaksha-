@@ -25,8 +25,6 @@ services:
     container_name: droidraksha-mobsf
     ports:
       - "8008:8000"
-    volumes:
-      - mobsf_data:/home/mobsf/.MobSF
     environment:
       - MOBSF_API_KEY_STATIC=${MOBSF_API_KEY:-droidraksha}
     restart: unless-stopped
@@ -105,5 +103,3 @@ services:
       - mobsf
     restart: unless-stopped
 
-volumes:
-  mobsf_data:
