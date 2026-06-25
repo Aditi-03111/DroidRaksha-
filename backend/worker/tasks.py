@@ -80,6 +80,19 @@ def run_analysis_task(self, apk_path: str, filename: str, job_id: str) -> dict:
     try:
         # ── Stage 1: Hashing (5%) ─────────────────────────────────────────
         _publish(job_id, {"stage": "hashing", "pct": 5, "msg": "Computing file hashes..."})
+        
+        # S3 Fallback: If running on a remote worker without a shared volume, download from S3
+        if not os.path.exists(apk_path):
+            _publish(job_id, {"stage": "download", "pct": 6, "msg": "Downloading from S3/R2..."})
+            from backend.storage.s3 import download_file as s3_download
+            os.makedirs(os.path.dirname(apk_path), exist_ok=True)
+            # We assume filename in S3 is apks/{sha256}.apk but we don't have sha256 yet...
+            # Actually, apk_path is uploads/sha256.apk, so we can extract the basename
+            object_name = f"apks/{os.path.basename(apk_path)}"
+            success = _run_async(s3_download(object_name, apk_path))
+            if not success:
+                raise FileNotFoundError(f"APK not found locally and failed to download from S3: {apk_path}")
+
         md5 = hashlib.md5()
         sha1 = hashlib.sha1()
         sha256 = hashlib.sha256()
@@ -243,6 +256,11 @@ def run_analysis_task(self, apk_path: str, filename: str, job_id: str) -> dict:
         # ── Save to DB (99%) ──────────────────────────────────────────────
         _publish(job_id, {"stage": "saving", "pct": 99, "msg": "Saving results to database..."})
         _run_async(database.save_analysis(result))
+
+        # ── Index IOCs to Elasticsearch (99.5%) ───────────────────────────
+        _publish(job_id, {"stage": "indexing", "pct": 99, "msg": "Indexing IOCs to Elasticsearch..."})
+        from backend.db import elastic
+        _run_async(elastic.index_analysis(result))
 
         # ── Done (100%) ───────────────────────────────────────────────────
         _publish(job_id, {

@@ -91,6 +91,10 @@ async def upload_apk(file: UploadFile = File(...)):
         with open(apk_path, "wb") as f_out:
             f_out.write(data)
         logger.info(f"Saved APK → {apk_path}")
+        
+        # Upload to S3/R2 if configured
+        from backend.storage.s3 import upload_file as s3_upload
+        await s3_upload(apk_path, f"apks/{sha256}.apk")
 
     # ── Submit Celery task ───────────────────────────────────────────────────
     job_id = str(uuid.uuid4())
@@ -157,6 +161,10 @@ async def upload_pcap(
     with open(pcap_path, "wb") as f_out:
         f_out.write(data)
     logger.info(f"Saved PCAP → {pcap_path} ({len(data):,} bytes)")
+
+    # Upload to S3/R2 if configured
+    from backend.storage.s3 import upload_file as s3_upload
+    await s3_upload(pcap_path, f"pcaps/{pcap_id}.pcap")
 
     # ── Run PCAP analysis (sync — fast enough for ≤200MB) ───────────────────
     from backend.engines import pcap_analyzer

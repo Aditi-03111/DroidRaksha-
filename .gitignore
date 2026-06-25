@@ -31,3 +31,4 @@ uploads/
 *.pcap
 *.pdf
 maldroid/
+*.log

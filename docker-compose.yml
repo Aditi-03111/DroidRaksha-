@@ -2,28 +2,31 @@ version: "3.9"
 
 # DroidRaksha — Full Stack Docker Compose
 # =========================================
-# Services:
-#   backend  — FastAPI (port 8000)
-#   mobsf    — MobSF static analysis (port 8008) [optional]
-#   redis    — Redis broker for Celery (port 6379) [optional]
-#   worker   — Celery worker [optional, needs Redis]
-#
-# Quickstart (backend + MobSF only):
-#   docker-compose up backend mobsf -d
-#
-# Full stack:
-#   docker-compose up -d
 
 services:
+
+  # ── Frontend Web UI ────────────────────────────────────────────────────────
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: droidraksha-frontend
+    ports:
+      - "3000:3000"
+    environment:
+      - BACKEND_URL=http://backend:8000
+    depends_on:
+      - backend
+    restart: unless-stopped
 
   # ── MobSF Static Analyzer ─────────────────────────────────────────────────
   mobsf:
     image: opensecurity/mobile-security-framework-mobsf:latest
     container_name: droidraksha-mobsf
     ports:
-      - "8008:8000"     # MobSF web UI + REST API
-#    volumes:
-#      - mobsf_data:/home/mobsf/.MobSF
+      - "8008:8000"
+    volumes:
+      - mobsf_data:/home/mobsf/.MobSF
     environment:
       - MOBSF_API_KEY_STATIC=${MOBSF_API_KEY:-droidraksha}
     restart: unless-stopped
@@ -56,7 +59,6 @@ services:
     ports:
       - "8000:8000"
     volumes:
-      - ./backend:/app/backend
       - ./uploads:/app/uploads
       - ./droidraksha.db:/app/droidraksha.db
       - /var/run/docker.sock:/var/run/docker.sock   # Allow sandbox to spawn containers
@@ -85,7 +87,6 @@ services:
     container_name: droidraksha-worker
     command: celery -A backend.worker.celery_app worker --loglevel=info -Q analysis -c 2
     volumes:
-      - ./backend:/app/backend
       - ./uploads:/app/uploads
       - ./droidraksha.db:/app/droidraksha.db
       - /var/run/docker.sock:/var/run/docker.sock
@@ -101,6 +102,7 @@ services:
       - GEMINI_API_KEY=${GEMINI_API_KEY}
     depends_on:
       - redis
+      - mobsf
     restart: unless-stopped
 
 volumes:

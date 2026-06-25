@@ -3,15 +3,17 @@ const nextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
+  output: "standalone",
   async rewrites() {
+    const backendUrl = process.env.BACKEND_URL || "http://localhost:8001";
     return [
       {
         source: "/api/:path*",
-        destination: "http://localhost:8001/api/:path*",
+        destination: `${backendUrl}/api/:path*`,
       },
       {
         source: "/ws/:path*",
-        destination: "http://localhost:8001/ws/:path*",
+        destination: `${backendUrl}/ws/:path*`,
       },
     ];
   },

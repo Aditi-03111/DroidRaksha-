@@ -13,6 +13,7 @@ type ExportState = "idle" | "loading" | "done" | "error";
 export default function ExportButton({ analysisId, packageName = "Unknown", sha256 }: ExportButtonProps) {
   const [pdfState, setPdfState] = useState<ExportState>("idle");
   const [jsonState, setJsonState] = useState<ExportState>("idle");
+  const [stixState, setStixState] = useState<ExportState>("idle");
 
   const downloadPDF = async () => {
     if (pdfState === "loading") return;
@@ -58,6 +59,28 @@ export default function ExportButton({ analysisId, packageName = "Unknown", sha2
     }
   };
 
+  const downloadSTIX = async () => {
+    if (stixState === "loading") return;
+    setStixState("loading");
+    try {
+      const identifier = sha256 || analysisId;
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/export/stix/${identifier}`);
+      if (!res.ok) throw new Error("Failed to generate STIX bundle");
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `DroidRaksha_STIX_${packageName.replace(/\./g, "_")}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+      setStixState("done");
+      setTimeout(() => setStixState("idle"), 3000);
+    } catch {
+      setStixState("error");
+      setTimeout(() => setStixState("idle"), 3000);
+    }
+  };
+
   const btnClass = (state: ExportState, color: string) => `
     flex items-center gap-2 px-4 py-2 text-[0.65rem] md:text-xs font-mono uppercase tracking-widest
     border transition-all duration-200 select-none cursor-pointer corner-brackets
@@ -66,6 +89,7 @@ export default function ExportButton({ analysisId, packageName = "Unknown", sha2
     ${state === "error" ? "border-rose-500 bg-[rgba(244,63,94,0.1)] text-rose-400" : ""}
     ${state === "idle" && color === "rose" ? "border-danger bg-[rgba(204,34,0,0.1)] text-danger hover:bg-[rgba(244,63,94,0.15)]" : ""}
     ${state === "idle" && color === "indigo" ? "border-primary bg-[rgba(0,237,63,0.05)] text-primary hover:bg-[rgba(0,82,255,0.15)]" : ""}
+    ${state === "idle" && color === "cyan" ? "border-cyan-500 bg-[rgba(6,182,212,0.1)] text-cyan-400 hover:bg-[rgba(6,182,212,0.2)]" : ""}
   `;
 
   return (
@@ -104,6 +128,24 @@ export default function ExportButton({ analysisId, packageName = "Unknown", sha2
           <FileJson className="w-3.5 h-3.5" />
         )}
         {jsonState === "loading" ? "[ EXPORTING ]" : jsonState === "done" ? "[ DOWNLOADED ]" : jsonState === "error" ? "[ FAILED ]" : "[ EXPORT JSON ]"}
+      </button>
+
+      {/* STIX Export */}
+      <button
+        id="export-stix-btn"
+        onClick={downloadSTIX}
+        disabled={stixState === "loading"}
+        className={btnClass(stixState, "cyan")}
+        title="Download STIX 2.1 Threat Intel"
+      >
+        {stixState === "loading" ? (
+          <span className="w-3.5 h-3.5 border-2 border-current border-t-transparent rounded-full animate-spin"></span>
+        ) : stixState === "done" ? (
+          <CheckCircle2 className="w-3.5 h-3.5" />
+        ) : (
+          <FileJson className="w-3.5 h-3.5" />
+        )}
+        {stixState === "loading" ? "[ GENERATING ]" : stixState === "done" ? "[ DOWNLOADED ]" : stixState === "error" ? "[ FAILED ]" : "[ EXPORT STIX ]"}
       </button>
 
       {/* Share link */}

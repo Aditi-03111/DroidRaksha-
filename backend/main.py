@@ -11,7 +11,9 @@ from dotenv import load_dotenv
 from loguru import logger
 
 from backend.db.database import init_db
-from backend.routes import upload, analysis, report, stats, websocket, sandbox
+from backend.routes import upload, analysis, sandbox, stats, websocket, report, search, export
+from backend.db.database import engine, Base
+from backend.db import elastic
 
 load_dotenv()
 
@@ -20,10 +22,16 @@ FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:3000")
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    logger.info("DroidRaksha backend starting up...")
-    await init_db()
-    yield
-    logger.info("DroidRaksha backend shutting down...")
+    logger.info("Initializing Supabase / PostgreSQL database...")
+    async with engine.begin() as conn:
+        # We rely on Alembic now, but create_all is safe if we want it as a fallback
+        # await conn.run_sync(Base.metadata.create_all)
+        pass
+    
+    logger.info("Initializing Bonsai Elasticsearch index...")
+    await elastic.setup_index()
+
+    logger.info("DroidRaksha Backend startup complete.")
 
 
 app = FastAPI(
@@ -48,9 +56,12 @@ app.add_middleware(
 )
 
 # Register routes — all under /api prefix
-app.include_router(upload.router, prefix="/api", tags=["Analysis"])
+app.include_router(upload.router, prefix="/api", tags=["Upload"])
 app.include_router(analysis.router, prefix="/api", tags=["Analysis"])
-app.include_router(report.router, prefix="/api", tags=["Reports"])
+app.include_router(stats.router, prefix="/api/stats", tags=["Statistics"])
+app.include_router(report.router, prefix="/api/report", tags=["PDF Report"])
+app.include_router(export.router, prefix="/api/export", tags=["Intelligence Export"])
+app.include_router(search.router, prefix="/api/search", tags=["Global Search"])
 app.include_router(stats.router, prefix="/api", tags=["Dashboard"])
 app.include_router(websocket.router, prefix="/api", tags=["WebSocket"])
 app.include_router(sandbox.router, prefix="/api", tags=["Sandbox"])

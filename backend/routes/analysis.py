@@ -58,6 +58,35 @@ async def get_analysis(analysis_id: str):
     return result
 
 
+@router.get("/analysis/{analysis_id}/download")
+async def download_apk(analysis_id: str):
+    """
+    Returns a secure S3 Presigned URL to download the original APK file.
+    Valid for 15 minutes.
+    """
+    from backend.storage import s3
+    from fastapi.responses import RedirectResponse
+    
+    result = await database.get_analysis(analysis_id)
+    if not result:
+        raise HTTPException(status_code=404, detail="Analysis not found")
+        
+    data = result if isinstance(result, dict) else dict(result)
+    hashes = data.get("hashes", {})
+    sha256 = hashes.get("sha256")
+    
+    if not sha256:
+        raise HTTPException(status_code=404, detail="APK hash not available")
+        
+    object_name = f"apks/{sha256}.apk"
+    url = await s3.get_presigned_url(object_name, expiration=900)
+    
+    if url:
+        return RedirectResponse(url=url, status_code=307)
+    
+    raise HTTPException(status_code=404, detail="APK not found in Cloud Storage or S3 not configured")
+
+
 @router.get("/analysis/{analysis_id}/filetree")
 async def get_file_tree(analysis_id: str):
     """

@@ -5,6 +5,8 @@ import json
 import os
 from datetime import datetime, timezone
 from typing import Optional, Union
+
+from backend.db.mongo import save_raw_result, get_raw_result, save_pcap_raw, get_pcap_raw
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 from sqlalchemy import String, Integer, Text, DateTime, select
@@ -30,7 +32,7 @@ class AnalysisRecord(Base):
     risk_score: Mapped[int] = mapped_column(Integer)
     risk_level: Mapped[str] = mapped_column(String(20))
     package_name: Mapped[str] = mapped_column(String(255), default="unknown")
-    result_json: Mapped[str] = mapped_column(Text)
+    # result_json is now stored in MongoDB
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         default=lambda: datetime.now(timezone.utc)
@@ -45,7 +47,7 @@ class PCAPRecord(Base):
     # Plain Column avoids Mapped[Optional[str]] issues on Python 3.14 + SQLAlchemy 2.x
     analysis_id = mapped_column(String(36), nullable=True, index=True, default=None)
     pcap_risk: Mapped[str] = mapped_column(String(20), default="UNKNOWN")
-    result_json: Mapped[str] = mapped_column(Text)
+    # result_json is now stored in MongoDB
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         default=lambda: datetime.now(timezone.utc)
@@ -70,7 +72,6 @@ async def save_analysis(result: dict) -> None:
             existing.risk_score = result["risk"]["score"]
             existing.risk_level = result["risk"]["risk_level"]
             existing.package_name = result.get("manifest", {}).get("package_name", "unknown")
-            existing.result_json = json.dumps(result)
         else:
             record = AnalysisRecord(
                 id=result["id"],
@@ -80,11 +81,13 @@ async def save_analysis(result: dict) -> None:
                 risk_score=result["risk"]["score"],
                 risk_level=result["risk"]["risk_level"],
                 package_name=result.get("manifest", {}).get("package_name", "unknown"),
-                result_json=json.dumps(result),
             )
             session.add(record)
         await session.commit()
-        logger.info(f"Saved analysis {result['id']} to DB")
+        
+    # Save the huge raw blob to MongoDB
+    await save_raw_result(result["id"], result)
+    logger.info(f"Saved analysis {result['id']} metadata to PG and raw to Mongo")
 
 
 async def get_analysis(analysis_id: str) -> Optional[dict]:
@@ -93,7 +96,12 @@ async def get_analysis(analysis_id: str) -> Optional[dict]:
         stmt = select(AnalysisRecord).where(AnalysisRecord.id == analysis_id)
         row = (await session.execute(stmt)).scalar_one_or_none()
         if row:
-            return json.loads(row.result_json)
+            # Try MongoDB first
+            mongo_doc = await get_raw_result(analysis_id)
+            if mongo_doc:
+                # Remove MongoDB _id field
+                mongo_doc.pop('_id', None)
+                return mongo_doc
         return None
 
 
@@ -105,7 +113,10 @@ async def get_analysis_by_hash(sha256: str) -> Optional[dict]:
         )
         row = (await session.execute(stmt)).scalars().first()
         if row:
-            return json.loads(row.result_json)
+            mongo_doc = await get_raw_result(row.id)
+            if mongo_doc:
+                mongo_doc.pop('_id', None)
+                return mongo_doc
         return None
 
 
@@ -157,11 +168,12 @@ async def save_pcap_result(
             filename=filename,
             analysis_id=analysis_id,
             pcap_risk=network.get("pcap_risk", "UNKNOWN"),
-            result_json=json.dumps(network),
         )
         session.add(record)
         await session.commit()
-        logger.info(f"Saved PCAP result {pcap_id} to DB")
+        
+    await save_pcap_raw(pcap_id, network)
+    logger.info(f"Saved PCAP result {pcap_id} to DB and Mongo")
 
 
 async def get_pcap_result(pcap_id: str) -> Optional[dict]:
@@ -170,7 +182,10 @@ async def get_pcap_result(pcap_id: str) -> Optional[dict]:
         stmt = select(PCAPRecord).where(PCAPRecord.id == pcap_id)
         row = (await session.execute(stmt)).scalar_one_or_none()
         if row:
-            return json.loads(row.result_json)
+            mongo_doc = await get_pcap_raw(pcap_id)
+            if mongo_doc:
+                mongo_doc.pop('_id', None)
+                return mongo_doc
         return None
 
 
@@ -179,4 +194,11 @@ async def get_pcap_results_for_analysis(analysis_id: str) -> list[dict]:
     async with async_session_factory() as session:
         stmt = select(PCAPRecord).where(PCAPRecord.analysis_id == analysis_id)
         rows = (await session.execute(stmt)).scalars().all()
-        return [json.loads(r.result_json) for r in rows]
+        
+        results = []
+        for r in rows:
+            mongo_doc = await get_pcap_raw(r.id)
+            if mongo_doc:
+                mongo_doc.pop('_id', None)
+                results.append(mongo_doc)
+        return results

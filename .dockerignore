@@ -1,10 +1,31 @@
+# Ignore git and environments
 .git
+.gitignore
 .venv
-node_modules
-**/node_modules
-frontend/.next
-frontend/out
-uploads/*
-*.db
-*.apk
-*.log
+venv
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+
+# Ignore local DB and uploads so we don't copy heavy files
+droidraksha.db
+droidraksha.db-journal
+uploads/
+test_uploads/
+
+# Ignore frontend node modules
+frontend/node_modules/
+frontend/.next/
+frontend/.npm/
+
+# IDE/Editor files
+.vscode
+.idea
+*.swp
+.DS_Store
+
+# Celery
+celerybeat-schedule
+celery.log
+backend.log

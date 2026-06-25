@@ -55,6 +55,24 @@ async def get_report(identifier: str):
 
     pkg = data.get("manifest", {}).get("package_name", "unknown")
     safe_pkg = pkg.replace(".", "_").replace(" ", "_")
+    object_name = f"reports/{identifier}_{safe_pkg}.pdf"
+
+    from backend.storage import s3
+    
+    # Create BytesIO to upload to S3
+    buf = BytesIO(pdf_bytes)
+    
+    # Try to upload to S3
+    uploaded = await s3.upload_fileobj(buf, object_name)
+    
+    if uploaded:
+        # If successfully uploaded, generate a 15-min presigned URL and redirect the browser
+        presigned_url = await s3.get_presigned_url(object_name, expiration=900)
+        if presigned_url:
+            from fastapi.responses import RedirectResponse
+            return RedirectResponse(url=presigned_url, status_code=307)
+    
+    # Fallback to streaming the bytes directly if S3 isn't configured or failed
     return Response(
         content=pdf_bytes,
         media_type="application/pdf",

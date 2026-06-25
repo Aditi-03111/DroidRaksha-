@@ -35,13 +35,10 @@ RUN apt-get update && apt-get install -y \
 # ── Set work directory ────────────────────────────────────────────────────────
 WORKDIR /app
 
-# ── Python dependencies (cached layer) ───────────────────────────────────────
-# Copy requirements FIRST so this layer is only re-run when requirements.txt changes.
-# BuildKit cache mount keeps the pip download cache on the HOST between builds —
-# packages are NEVER re-downloaded unless the version changes.
+# BuildKit cache mount is deliberately removed to prevent the host's Docker.raw
+# virtual disk from permanently ballooning by 10+ GB from ML dependencies.
 COPY requirements.txt .
-RUN --mount=type=cache,target=/root/.cache/pip \
-    pip install -r requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt
 
 # ── JADX CLI (full distribution incl. lib/*.jar) ─────────────────────────────
 # Placed AFTER pip install so changing JADX does NOT bust the pip cache layer.
