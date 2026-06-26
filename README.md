@@ -6,6 +6,24 @@ DroidRaksha is an advanced, high-performance static analysis platform designed t
 
 🎥 **YouTube Demo:** [DroidRaksha – An AI Powered APK Threat Intelligence Platform by PHAPGUYZ](https://www.youtube.com/watch?v=your-video-id)
 
+## 🚀 Quick Start (Running Locally with Docker)
+
+DroidRaksha is completely containerized. You do not need to install Python, Node.js, or any external databases on your machine to test the application.
+
+1. **Install Docker:** Ensure you have [Docker Desktop](https://www.docker.com/products/docker-desktop/) installed and running.
+2. **Clone the repository:**
+   ```bash
+   git clone https://github.com/praju455/DroidRaksha-.git
+   cd DroidRaksha-
+   ```
+3. **Start the application:**
+   ```bash
+   docker compose up --build -d
+   ```
+4. **Access the Dashboard:** Open your web browser and navigate to `http://localhost:3000`.
+
+*Note: The first build might take a few minutes as it downloads the machine learning models and configures the MobSF sandbox environment.*
+
 ## 🏗️ Architecture
 
 DroidRaksha (Round 2) employs a scalable, microservices-based architecture designed for distributed threat analysis:
