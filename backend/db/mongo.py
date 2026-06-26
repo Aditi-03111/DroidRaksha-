@@ -28,7 +28,7 @@ def get_mongo_db():
 async def save_raw_result(analysis_id: str, result: dict) -> None:
     """Save or update the full raw analysis JSON in MongoDB."""
     db = get_mongo_db()
-    if not db:
+    if db is None:
         logger.warning(f"MongoDB not configured. Skipping raw save for {analysis_id}")
         return
         
@@ -44,7 +44,7 @@ async def save_raw_result(analysis_id: str, result: dict) -> None:
 async def get_raw_result(analysis_id: str) -> dict | None:
     """Retrieve the full raw analysis JSON from MongoDB."""
     db = get_mongo_db()
-    if not db:
+    if db is None:
         return None
         
     collection = db["raw_analyses"]
@@ -54,7 +54,7 @@ async def get_raw_result(analysis_id: str) -> dict | None:
 async def save_pcap_raw(pcap_id: str, network_data: dict) -> None:
     """Save full PCAP results to MongoDB."""
     db = get_mongo_db()
-    if not db:
+    if db is None:
         return
         
     collection = db["pcap_analyses"]
@@ -67,7 +67,7 @@ async def save_pcap_raw(pcap_id: str, network_data: dict) -> None:
 async def get_pcap_raw(pcap_id: str) -> dict | None:
     """Retrieve full PCAP result from MongoDB."""
     db = get_mongo_db()
-    if not db:
+    if db is None:
         return None
         
     collection = db["pcap_analyses"]

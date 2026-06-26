@@ -299,9 +299,9 @@ export default function Home() {
               <div className="glass-panel p-8 corner-brackets clip-corner-md scanlines clip-corner-md scanlines group stagger-item flex flex-col hover:bg-[#080808] transition-colors duration-500">
                 <h3 className="text-lg font-bold text-secondary uppercase tracking-tight mb-3 font-mono">AI & ML Intelligence</h3>
                 <p className="text-sm text-muted font-light leading-relaxed flex-1">
-                  Classify threats using XGBoost (trained on CICMalDroid 2020), MalBERT zero-shot classification, and Isolation Forests for zero-day anomaly detection.
+                  Classify threats using Static ML (trained on CICMalDroid 2020), Deep Neural Net zero-shot classification, and Isolation Forests for zero-day anomaly detection.
                 </p>
-                <div className="mt-8 pt-4 border-t border-border text-[0.65rem] font-mono text-muted uppercase">Tech: XGBoost / MalBERT</div>
+                <div className="mt-8 pt-4 border-t border-border text-[0.65rem] font-mono text-muted uppercase">Tech: Static ML / Deep Neural Net</div>
               </div>
               <div className="glass-panel p-8 corner-brackets clip-corner-md scanlines clip-corner-md scanlines group stagger-item flex flex-col hover:bg-[#080808] transition-colors duration-500">
                 <h3 className="text-lg font-bold text-secondary uppercase tracking-tight mb-3 font-mono">India IOC Threat Intel</h3>
@@ -326,7 +326,7 @@ export default function Home() {
             <div className="stagger-item flex flex-col items-center">
               <div className="text-[0.65rem] font-mono text-muted uppercase tracking-widest mb-4 border border-border px-3 py-1 bg-surface-raised">Machine Learning</div>
               <div className="text-6xl font-bold tracking-tighter text-secondary mb-2">3<span className="text-2xl text-primary ml-1">Models</span></div>
-              <p className="text-xs text-muted font-mono uppercase mt-2">XGBoost, MalBERT, IF</p>
+              <p className="text-xs text-muted font-mono uppercase mt-2">Static ML, Deep Neural Net, IF</p>
             </div>
             <div className="stagger-item flex flex-col items-center">
               <div className="text-[0.65rem] font-mono text-muted uppercase tracking-widest mb-4 border border-border px-3 py-1 bg-surface-raised">LangChain GenAI</div>
@@ -372,8 +372,8 @@ export default function Home() {
                 </div>
                 <div className="border-l border-border pl-4">
                   <span className="text-secondary block mb-1 uppercase tracking-widest">3. AI & ML Intelligence Layer</span>
-                  <span className="text-muted block mb-2">Combines MalBERT text classification, XGBoost structured detection, and LangChain ReAct agents to produce court-grade verdicts.</span>
-                  <span className="text-xs text-muted flex flex-wrap gap-x-3 gap-y-1"><span>// XGBoost</span><span>// MalBERT</span><span>// LangChain ReAct</span></span>
+                  <span className="text-muted block mb-2">Combines Deep Neural Net text classification, Static ML structured detection, and LangChain ReAct agents to produce court-grade verdicts.</span>
+                  <span className="text-xs text-muted flex flex-wrap gap-x-3 gap-y-1"><span>// Static ML</span><span>// Deep Neural Net</span><span>// LangChain ReAct</span></span>
                 </div>
               </div>
             </div>

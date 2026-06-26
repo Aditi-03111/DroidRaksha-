@@ -183,7 +183,7 @@ export default function ResultsPage() {
         {activeTab === "ml" && (
           <div className="space-y-6">
             <p className="text-[0.65rem] font-mono text-muted uppercase tracking-widest border-l-2 border-border pl-3">
-              Full ML Intelligence Layer results — XGBoost, MalBERT, LangChain Agent.
+              Full ML Intelligence Layer results — Static ML, Deep Neural Net, LangChain Agent.
             </p>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <MalwareFamilyBadge
@@ -241,11 +241,11 @@ export default function ResultsPage() {
                 </div>
               )}
 
-              {/* MalBERT all scores */}
+              {/* Deep Neural Net all scores */}
               {result.malbert?.available && (
                 <div className="bg-surface-raised border border-border p-6 corner-brackets space-y-4">
                   <h3 className="font-bold text-secondary uppercase tracking-tight text-sm font-mono flex items-center gap-2 border-b border-border pb-2">
-                    MalBERT Zero-Shot
+                    Deep Neural Net Zero-Shot
                     <span className="text-[0.65rem] text-muted font-normal ml-auto">{result.malbert.inference_ms}ms</span>
                   </h3>
                   {Object.entries(result.malbert.all_scores)

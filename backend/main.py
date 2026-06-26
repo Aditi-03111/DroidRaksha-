@@ -23,15 +23,13 @@ FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:3000")
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     logger.info("Initializing Supabase / PostgreSQL database...")
-    async with engine.begin() as conn:
-        # We rely on Alembic now, but create_all is safe if we want it as a fallback
-        # await conn.run_sync(Base.metadata.create_all)
-        pass
+    await init_db()
     
     logger.info("Initializing Bonsai Elasticsearch index...")
     await elastic.setup_index()
 
     logger.info("DroidRaksha Backend startup complete.")
+    yield
 
 
 app = FastAPI(

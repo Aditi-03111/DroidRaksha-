@@ -26,7 +26,7 @@ services:
     ports:
       - "8008:8000"
     environment:
-      - MOBSF_API_KEY_STATIC=${MOBSF_API_KEY:-droidraksha}
+      - MOBSF_API_KEY=${MOBSF_API_KEY:-droidraksha}
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/"]
@@ -48,6 +48,21 @@ services:
       timeout: 5s
       retries: 3
 
+  # ── MongoDB (Local Offline Database) ───────────────────────────────────────
+  mongodb:
+    image: mongo:7.0
+    container_name: droidraksha-mongodb
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
   # ── FastAPI Backend ───────────────────────────────────────────────────────
   backend:
     build:
@@ -61,7 +76,7 @@ services:
       - ./droidraksha.db:/app/droidraksha.db
       - /var/run/docker.sock:/var/run/docker.sock   # Allow sandbox to spawn containers
     environment:
-      - DATABASE_URL=sqlite+aiosqlite:///./droidraksha.db
+      - DATABASE_URL=${DATABASE_URL:-sqlite+aiosqlite:///./droidraksha.db}
       - UPLOAD_DIR=./uploads
       - UPLOADS_HOST_PATH=${UPLOADS_HOST_PATH:-./uploads}
       - REDIS_URL=redis://redis:6379/0
@@ -72,9 +87,15 @@ services:
       - GEMINI_API_KEY=${GEMINI_API_KEY}
       - VIRUSTOTAL_API_KEY=${VIRUSTOTAL_API_KEY}
       - ABUSEIPDB_API_KEY=${ABUSEIPDB_API_KEY}
+      - MONGO_URI=mongodb://mongodb:27017/droidraksha
+      - S3_ENDPOINT_URL=${S3_ENDPOINT_URL}
+      - S3_ACCESS_KEY=${S3_ACCESS_KEY}
+      - S3_SECRET_KEY=${S3_SECRET_KEY}
+      - S3_BUCKET_NAME=${S3_BUCKET_NAME}
     depends_on:
       - redis
       - mobsf
+      - mongodb
     restart: unless-stopped
 
   # ── Celery Worker ─────────────────────────────────────────────────────────
@@ -89,7 +110,7 @@ services:
       - ./droidraksha.db:/app/droidraksha.db
       - /var/run/docker.sock:/var/run/docker.sock
     environment:
-      - DATABASE_URL=sqlite+aiosqlite:///./droidraksha.db
+      - DATABASE_URL=${DATABASE_URL:-sqlite+aiosqlite:///./droidraksha.db}
       - UPLOAD_DIR=./uploads
       - UPLOADS_HOST_PATH=${UPLOADS_HOST_PATH:-./uploads}
       - REDIS_URL=redis://redis:6379/0
@@ -98,8 +119,17 @@ services:
       - SANDBOX_IMAGE=droidraksha-sandbox:latest
       - SANDBOX_ENABLED=true
       - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - MONGO_URI=mongodb://mongodb:27017/droidraksha
+      - S3_ENDPOINT_URL=${S3_ENDPOINT_URL}
+      - S3_ACCESS_KEY=${S3_ACCESS_KEY}
+      - S3_SECRET_KEY=${S3_SECRET_KEY}
+      - S3_BUCKET_NAME=${S3_BUCKET_NAME}
     depends_on:
       - redis
       - mobsf
+      - mongodb
     restart: unless-stopped
+
+volumes:
+  mongo_data:
 
