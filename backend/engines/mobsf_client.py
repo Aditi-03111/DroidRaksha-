@@ -129,8 +129,15 @@ def _normalize_report(raw: dict) -> dict:
 
     # Security findings
     code_analysis = raw.get("code_analysis", {})
+    
+    # MobSF v3.8+ nests actual findings inside a "findings" key, along with "summary".
+    if "findings" in code_analysis and isinstance(code_analysis["findings"], dict):
+        actual_findings = code_analysis["findings"]
+    else:
+        actual_findings = code_analysis
+        
     findings = []
-    for issue_id, issue in code_analysis.items():
+    for issue_id, issue in actual_findings.items():
         if isinstance(issue, dict):
             findings.append({
                 "title":    issue.get("metadata", {}).get("cvss", issue_id),
