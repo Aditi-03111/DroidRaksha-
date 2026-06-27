@@ -85,6 +85,7 @@ services:
       - SANDBOX_IMAGE=droidraksha-sandbox:latest
       - SANDBOX_ENABLED=true
       - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - GROQ_API_KEY=${GROQ_API_KEY}
       - VIRUSTOTAL_API_KEY=${VIRUSTOTAL_API_KEY}
       - ABUSEIPDB_API_KEY=${ABUSEIPDB_API_KEY}
       - MONGO_URI=mongodb://mongodb:27017/droidraksha
@@ -119,6 +120,7 @@ services:
       - SANDBOX_IMAGE=droidraksha-sandbox:latest
       - SANDBOX_ENABLED=true
       - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - GROQ_API_KEY=${GROQ_API_KEY}
       - MONGO_URI=mongodb://mongodb:27017/droidraksha
       - S3_ENDPOINT_URL=${S3_ENDPOINT_URL}
       - S3_ACCESS_KEY=${S3_ACCESS_KEY}

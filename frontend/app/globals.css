@@ -55,8 +55,15 @@
   }
 
   ::selection {
-    background: var(--accent-primary);
-    color: var(--background);
+    background: #3b82f6 !important;
+    color: #ffffff !important;
+    text-shadow: none !important;
+  }
+  
+  ::-moz-selection {
+    background: #3b82f6 !important;
+    color: #ffffff !important;
+    text-shadow: none !important;
   }
 }
 
