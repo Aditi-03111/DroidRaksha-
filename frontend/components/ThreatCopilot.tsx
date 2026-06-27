@@ -222,12 +222,12 @@ export default function ThreatCopilot({ analysisId, activeTab, filename, riskLev
                       <Bot className="w-3 h-3 text-[#a78bfa]" />
                     </div>
                     <div className="space-y-2">
-                      <p className="text-[0.7rem] font-mono text-[#e2e8f0] leading-relaxed">
-                        Hello! I&apos;m your <span className="text-[#a78bfa] font-bold">Threat Copilot</span>.
+                      <p className="text-[0.875rem] font-sans text-[#e2e8f0] leading-relaxed">
+                        Hello! I&apos;m your <span className="text-[#a78bfa] font-semibold">Threat Copilot</span>.
                         I can explain anything you see on this analysis report in simple, everyday language.
                       </p>
-                      <p className="text-[0.65rem] font-mono text-[#94a3b8]">
-                        Analyzing: <span className="text-white">{filename || "this APK"}</span>
+                      <p className="text-[0.75rem] font-sans text-[#94a3b8]">
+                        Analyzing: <span className="text-white font-medium">{filename || "this APK"}</span>
                       </p>
                     </div>
                   </div>
@@ -235,14 +235,14 @@ export default function ThreatCopilot({ analysisId, activeTab, filename, riskLev
                   {/* Suggested questions */}
                   {showSuggestions && (
                     <div className="space-y-1.5 pl-8">
-                      <p className="text-[0.6rem] font-mono text-[#94a3b8] uppercase tracking-widest mb-2">
+                      <p className="text-[0.7rem] font-mono text-[#94a3b8] uppercase tracking-widest mb-2">
                         Try asking:
                       </p>
                       {SUGGESTED_QUESTIONS.map((q) => (
                         <button
                           key={q}
                           onClick={() => sendMessage(q)}
-                          className="block w-full text-left px-3 py-2 text-[0.65rem] font-mono text-[#94a3b8] bg-[rgba(255,255,255,0.03)] border border-[rgba(255,255,255,0.08)] hover:border-[rgba(167,139,250,0.4)] hover:text-[#a78bfa] hover:bg-[rgba(167,139,250,0.05)] transition-all duration-200"
+                          className="block w-full text-left px-3 py-2 text-[0.8rem] font-sans text-[#94a3b8] bg-[rgba(255,255,255,0.03)] border border-[rgba(255,255,255,0.08)] hover:border-[rgba(167,139,250,0.4)] hover:text-[#a78bfa] hover:bg-[rgba(167,139,250,0.05)] transition-all duration-200"
                         >
                           {q}
                         </button>
@@ -269,7 +269,7 @@ export default function ThreatCopilot({ analysisId, activeTab, filename, riskLev
                     )}
                   </div>
                   <div
-                    className={`max-w-[85%] px-3 py-2 text-[0.7rem] font-mono leading-relaxed ${
+                    className={`max-w-[85%] px-4 py-3 text-[0.9375rem] font-sans leading-[1.7] ${
                       msg.role === "user"
                         ? "bg-[rgba(255,255,255,0.08)] border border-[rgba(255,255,255,0.15)] text-white"
                         : "bg-[rgba(167,139,250,0.05)] border border-[rgba(167,139,250,0.15)] text-[#e2e8f0]"

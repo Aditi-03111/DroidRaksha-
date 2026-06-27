@@ -11,6 +11,7 @@ interface TreeNode {
   suspicious?: boolean;
   warning?: string;
   children?: TreeNode[];
+  virtual?: boolean;
 }
 
 interface FileTreeStats {
@@ -134,11 +135,62 @@ function TreeNodeView({
 
 /* ─── Top-Down Flowchart Tree View ────────────────────────────────────────── */
 
+// Helper to group massive file lists into virtual category folders
+function groupChildren(children: TreeNode[]): TreeNode[] {
+  const dirs = children.filter(c => c.type === "dir");
+  const files = children.filter(c => c.type === "file");
+
+  // If there are only a few files, no need to group them (prevents over-nesting small folders)
+  if (files.length <= 5) {
+    return children;
+  }
+
+  const groups: Record<string, TreeNode[]> = {
+    "XML & Configs": [],
+    "Images & Media": [],
+    "Native Libs (.so)": [],
+    "Executables (.dex)": [],
+    "Certificates": [],
+    "Other Files": []
+  };
+
+  files.forEach(f => {
+    const ext = (f.ext || "").toLowerCase();
+    const name = f.name.toLowerCase();
+    
+    if (ext === ".xml" || ext === ".json") groups["XML & Configs"].push(f);
+    else if (ext === ".png" || ext === ".jpg" || ext === ".jpeg" || ext === ".webp" || ext === ".gif") groups["Images & Media"].push(f);
+    else if (ext === ".so") groups["Native Libs (.so)"].push(f);
+    else if (ext === ".dex" || ext === ".jar") groups["Executables (.dex)"].push(f);
+    else if (ext === ".rsa" || ext === ".dsa" || ext === ".sf" || ext === ".mf" || name.endsWith(".rsa")) groups["Certificates"].push(f);
+    else groups["Other Files"].push(f);
+  });
+
+  const virtualNodes: TreeNode[] = [];
+  for (const [groupName, groupFiles] of Object.entries(groups)) {
+    if (groupFiles.length > 0) {
+      virtualNodes.push({
+        name: `${groupName} (${groupFiles.length})`,
+        path: `virtual-${groupName}-${Math.random()}`,
+        type: "dir",
+        virtual: true,
+        children: groupFiles,
+        suspicious: groupFiles.some(f => f.suspicious),
+      });
+    }
+  }
+
+  return [...dirs, ...virtualNodes];
+}
+
 function FlowchartNode({ node, depth = 0 }: { node: TreeNode; depth?: number }) {
   // Expand everything at starting
   const [expanded, setExpanded] = useState(true);
   const isDir = node.type === "dir";
   const extInfo = node.ext ? EXT_ICONS[node.ext] : null;
+
+  // Group children to prevent infinite horizontal width
+  const displayChildren = node.children ? groupChildren(node.children) : [];
 
   return (
     <li className="relative float-left text-center list-none px-2 py-5 transition-all">
@@ -150,16 +202,20 @@ function FlowchartNode({ node, depth = 0 }: { node: TreeNode; depth?: number }) 
             transition-all duration-300 shadow-xl backdrop-blur-sm
             ${node.suspicious 
               ? "bg-rose-950/90 border-rose-500 text-rose-200 shadow-[0_0_15px_rgba(244,63,94,0.4)]" 
-              : isDir 
-                ? "bg-slate-800/90 border-indigo-500/60 text-slate-100 hover:border-indigo-400 hover:bg-slate-700" 
-                : "bg-slate-800/50 border-slate-700/80 text-slate-300 hover:border-slate-500 hover:bg-slate-700"
+              : node.virtual
+                ? "bg-indigo-950/80 border-indigo-400/50 text-indigo-100 hover:bg-indigo-900/80 hover:border-indigo-400"
+                : isDir 
+                  ? "bg-slate-800/90 border-blue-500/40 text-slate-100 hover:border-blue-400 hover:bg-slate-700" 
+                  : "bg-slate-800/50 border-slate-700/80 text-slate-300 hover:border-slate-500 hover:bg-slate-700"
             }
             ${isDir ? "cursor-pointer" : ""}
           `}
           onClick={() => isDir && setExpanded(!expanded)}
         >
           <div className="flex items-center gap-1.5 mb-1.5">
-            {isDir ? (
+            {node.virtual ? (
+              <Package className="w-5 h-5 flex-shrink-0 text-indigo-300" />
+            ) : isDir ? (
               <FolderOpen className={`w-5 h-5 flex-shrink-0 ${node.suspicious ? "text-rose-400" : "text-yellow-400"}`} />
             ) : extInfo ? (
               <span className={`text-[16px] leading-none flex-shrink-0 ${extInfo.color}`}>{extInfo.icon}</span>
@@ -186,8 +242,8 @@ function FlowchartNode({ node, depth = 0 }: { node: TreeNode; depth?: number }) 
             <span className="text-[9px] text-slate-400 mt-1">{formatBytes(node.size)}</span>
           )}
           
-          {isDir && node.children && node.children.length > 0 && (
-            <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 bg-slate-900 border border-slate-600 rounded-full p-0.5 text-slate-400 shadow-md">
+          {isDir && displayChildren.length > 0 && (
+            <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 bg-slate-900 border border-slate-600 rounded-full p-0.5 text-slate-400 shadow-md hover:bg-slate-700 transition-colors">
               {expanded ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
             </div>
           )}
@@ -195,9 +251,9 @@ function FlowchartNode({ node, depth = 0 }: { node: TreeNode; depth?: number }) 
       </div>
       
       {/* Children */}
-      {isDir && expanded && node.children && node.children.length > 0 && (
+      {isDir && expanded && displayChildren.length > 0 && (
         <ul className="flex justify-center pt-5 relative org-tree">
-          {node.children.map((child) => (
+          {displayChildren.map((child) => (
             <FlowchartNode key={child.path} node={child} depth={depth + 1} />
           ))}
         </ul>
