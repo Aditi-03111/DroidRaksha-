@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect, useCallback, useRef } from "react";
-import { ChevronRight, ChevronDown, Folder, FolderOpen, File, AlertTriangle, Package, List, GitBranch } from "lucide-react";
+import { ChevronRight, ChevronDown, Folder, FolderOpen, File, AlertTriangle, Package, List, GitBranch, Network } from "lucide-react";
 
 interface TreeNode {
   name: string;
@@ -40,19 +40,6 @@ const EXT_ICONS: Record<string, { icon: string; color: string }> = {
   ".bin": { icon: "💾", color: "text-rose-400" },
   ".enc": { icon: "🔒", color: "text-rose-500" },
   ".dat": { icon: "📦", color: "text-slate-200" },
-};
-
-const EXT_COLORS: Record<string, string> = {
-  ".dex": "#60a5fa",
-  ".so":  "#fb923c",
-  ".xml": "#4ade80",
-  ".png": "#c084fc",
-  ".jpg": "#c084fc",
-  ".json": "#facc15",
-  ".jar": "#f87171",
-  ".bin": "#fb7185",
-  ".enc": "#f43f5e",
-  ".dat": "#e2e8f0",
 };
 
 function formatBytes(b: number) {
@@ -145,275 +132,92 @@ function TreeNodeView({
   );
 }
 
-/* ─── Graph View (new visual tree) ───────────────────────────────────── */
+/* ─── Flowchart View (Horizontal Interactive Tree) ────────────────────── */
 
-interface GraphNode {
-  id: string;
-  name: string;
-  x: number;
-  y: number;
-  parentId: string | null;
-  isDir: boolean;
-  suspicious: boolean;
-  ext?: string;
-  depth: number;
-  childCount: number;
-}
-
-function flattenTree(nodes: TreeNode[], parentId: string | null = null, depth = 0): GraphNode[] {
-  const result: GraphNode[] = [];
-  for (const node of nodes) {
-    const id = node.path;
-    result.push({
-      id,
-      name: node.name,
-      x: 0,
-      y: 0,
-      parentId,
-      isDir: node.type === "dir",
-      suspicious: !!node.suspicious,
-      ext: node.ext,
-      depth,
-      childCount: node.children?.length ?? 0,
-    });
-    if (node.children && depth < 3) {
-      result.push(...flattenTree(node.children, id, depth + 1));
-    }
-  }
-  return result;
-}
-
-function GraphView({ tree }: { tree: TreeNode[] }) {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
-  const [hoveredNode, setHoveredNode] = useState<GraphNode | null>(null);
-  const [graphNodes, setGraphNodes] = useState<GraphNode[]>([]);
-  const [dimensions, setDimensions] = useState({ w: 800, h: 600 });
-
-  useEffect(() => {
-    if (!containerRef.current) return;
-    const rect = containerRef.current.getBoundingClientRect();
-    setDimensions({ w: rect.width, h: Math.max(500, rect.width * 0.65) });
-  }, []);
-
-  useEffect(() => {
-    const flat = flattenTree(tree);
-    const { w, h } = dimensions;
-    const cx = w / 2;
-    const cy = h / 2;
-
-    // Layout: root at center, children in concentric rings
-    const byDepth: Record<number, GraphNode[]> = {};
-    for (const n of flat) {
-      (byDepth[n.depth] ??= []).push(n);
-    }
-
-    // Root node
-    const roots = byDepth[0] || [];
-    const rootNode: GraphNode = {
-      id: "__root__",
-      name: "APK",
-      x: cx,
-      y: cy,
-      parentId: null,
-      isDir: true,
-      suspicious: false,
-      depth: -1,
-      childCount: roots.length,
-    };
-
-    const positioned: GraphNode[] = [rootNode];
-
-    // Position depth-0 nodes in a ring around center
-    const ringRadii = [0, Math.min(w, h) * 0.18, Math.min(w, h) * 0.32, Math.min(w, h) * 0.44];
-
-    for (const [depthStr, nodes] of Object.entries(byDepth)) {
-      const depth = parseInt(depthStr);
-      const radius = ringRadii[depth + 1] || ringRadii[ringRadii.length - 1];
-
-      // Group children by parent
-      const parentGroups: Record<string, GraphNode[]> = {};
-      for (const n of nodes) {
-        const pid = n.parentId ?? "__root__";
-        (parentGroups[pid] ??= []).push(n);
-      }
-
-      // Position each group
-      for (const [pid, children] of Object.entries(parentGroups)) {
-        const parent = positioned.find((p) => p.id === pid) ?? rootNode;
-        const parentAngle = Math.atan2(parent.y - cy, parent.x - cx);
-        const spread = Math.min(Math.PI * 2, (children.length * 0.25));
-        const startAngle = depth === 0 ? 0 : parentAngle - spread / 2;
-
-        children.forEach((child, i) => {
-          const angle = depth === 0
-            ? (i / children.length) * Math.PI * 2 - Math.PI / 2
-            : startAngle + (i / Math.max(children.length - 1, 1)) * spread;
-          const jitter = (Math.random() - 0.5) * 10;
-          child.x = cx + Math.cos(angle) * (radius + jitter);
-          child.y = cy + Math.sin(angle) * (radius + jitter);
-          child.parentId = pid;
-          positioned.push(child);
-        });
-      }
-    }
-
-    setGraphNodes(positioned);
-  }, [tree, dimensions]);
-
-  // Draw
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas || graphNodes.length === 0) return;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-
-    const dpr = window.devicePixelRatio || 1;
-    canvas.width = dimensions.w * dpr;
-    canvas.height = dimensions.h * dpr;
-    ctx.scale(dpr, dpr);
-
-    // Clear
-    ctx.clearRect(0, 0, dimensions.w, dimensions.h);
-
-    // Draw concentric ring guides
-    const cx = dimensions.w / 2;
-    const cy = dimensions.h / 2;
-    const ringRadii = [
-      Math.min(dimensions.w, dimensions.h) * 0.18,
-      Math.min(dimensions.w, dimensions.h) * 0.32,
-      Math.min(dimensions.w, dimensions.h) * 0.44,
-    ];
-    for (const r of ringRadii) {
-      ctx.beginPath();
-      ctx.arc(cx, cy, r, 0, Math.PI * 2);
-      ctx.strokeStyle = "rgba(255,255,255,0.04)";
-      ctx.lineWidth = 1;
-      ctx.stroke();
-    }
-
-    // Draw edges
-    for (const node of graphNodes) {
-      if (!node.parentId) continue;
-      const parent = graphNodes.find((n) => n.id === node.parentId);
-      if (!parent) continue;
-
-      ctx.beginPath();
-      ctx.moveTo(parent.x, parent.y);
-      ctx.lineTo(node.x, node.y);
-      ctx.strokeStyle = node.suspicious
-        ? "rgba(244, 63, 94, 0.4)"
-        : "rgba(148, 163, 184, 0.12)";
-      ctx.lineWidth = node.suspicious ? 1.5 : 0.5;
-      ctx.stroke();
-    }
-
-    // Draw nodes
-    for (const node of graphNodes) {
-      const isHovered = hoveredNode?.id === node.id;
-      const r = node.id === "__root__" ? 10 : node.isDir ? 6 : 4;
-
-      // Glow for suspicious
-      if (node.suspicious) {
-        ctx.beginPath();
-        ctx.arc(node.x, node.y, r + 4, 0, Math.PI * 2);
-        const glow = ctx.createRadialGradient(node.x, node.y, r, node.x, node.y, r + 8);
-        glow.addColorStop(0, "rgba(244, 63, 94, 0.3)");
-        glow.addColorStop(1, "rgba(244, 63, 94, 0)");
-        ctx.fillStyle = glow;
-        ctx.fill();
-      }
-
-      // Node circle
-      ctx.beginPath();
-      ctx.arc(node.x, node.y, r, 0, Math.PI * 2);
-
-      if (node.id === "__root__") {
-        ctx.fillStyle = "#ffffff";
-      } else if (node.suspicious) {
-        ctx.fillStyle = "#f43f5e";
-      } else if (node.isDir) {
-        ctx.fillStyle = "#facc15";
-      } else {
-        ctx.fillStyle = (node.ext && EXT_COLORS[node.ext]) || "#64748b";
-      }
-      ctx.fill();
-
-      // Border
-      if (isHovered) {
-        ctx.strokeStyle = "#ffffff";
-        ctx.lineWidth = 2;
-        ctx.stroke();
-      }
-
-      // Label for root, dirs, and hovered
-      if (node.id === "__root__" || (node.isDir && node.depth <= 1) || isHovered) {
-        ctx.font = `${node.id === "__root__" ? "bold 11px" : "10px"} monospace`;
-        ctx.fillStyle = node.suspicious ? "#fda4af" : "#e2e8f0";
-        ctx.textAlign = "center";
-        ctx.fillText(node.name, node.x, node.y - r - 5);
-      }
-    }
-  }, [graphNodes, hoveredNode, dimensions]);
-
-  // Mouse hover
-  const handleMouseMove = useCallback(
-    (e: React.MouseEvent<HTMLCanvasElement>) => {
-      const canvas = canvasRef.current;
-      if (!canvas) return;
-      const rect = canvas.getBoundingClientRect();
-      const mx = e.clientX - rect.left;
-      const my = e.clientY - rect.top;
-
-      let closest: GraphNode | null = null;
-      let minDist = 20;
-      for (const n of graphNodes) {
-        const d = Math.hypot(n.x - mx, n.y - my);
-        if (d < minDist) {
-          closest = n;
-          minDist = d;
-        }
-      }
-      setHoveredNode(closest);
-    },
-    [graphNodes]
-  );
+function FlowchartNode({ node, depth = 0 }: { node: TreeNode; depth?: number }) {
+  // Auto-expand the first couple of levels
+  const [expanded, setExpanded] = useState(depth < 1);
+  const isDir = node.type === "dir";
+  const hasChildren = isDir && node.children && node.children.length > 0;
+  const extInfo = node.ext ? EXT_ICONS[node.ext] : null;
 
   return (
-    <div ref={containerRef} className="relative">
-      <canvas
-        ref={canvasRef}
-        style={{ width: dimensions.w, height: dimensions.h }}
-        className="w-full cursor-crosshair"
-        onMouseMove={handleMouseMove}
-        onMouseLeave={() => setHoveredNode(null)}
-      />
-      {/* Tooltip */}
-      {hoveredNode && hoveredNode.id !== "__root__" && (
-        <div
-          className="absolute pointer-events-none bg-black/90 border border-[rgba(255,255,255,0.2)] px-3 py-2 text-[0.65rem] font-mono z-20 rounded"
-          style={{
-            left: Math.min(hoveredNode.x, dimensions.w - 200),
-            top: hoveredNode.y + 15,
-          }}
-        >
-          <p className={`font-bold ${hoveredNode.suspicious ? "text-[#f43f5e]" : "text-white"}`}>
-            {hoveredNode.name}
-          </p>
-          <p className="text-[#94a3b8]">
-            {hoveredNode.isDir ? `📁 Directory · ${hoveredNode.childCount} items` : `📄 File`}
-          </p>
-          {hoveredNode.suspicious && (
-            <p className="text-[#f43f5e] mt-1">⚠️ Suspicious entry</p>
-          )}
+    <div className="flex items-center">
+      {/* Node Card */}
+      <div 
+        className={`
+          flex items-center gap-2 px-3 py-2 rounded-lg border text-xs font-mono whitespace-nowrap
+          transition-all duration-300 relative z-10 select-none
+          ${node.suspicious 
+            ? "bg-[rgba(244,63,94,0.1)] border-[#f43f5e] text-[#fda4af] shadow-[0_0_10px_rgba(244,63,94,0.2)]" 
+            : "bg-slate-800/80 border-slate-700/60 text-slate-200 hover:border-slate-500"
+          }
+          ${hasChildren ? "cursor-pointer hover:bg-slate-700/80" : ""}
+        `}
+        onClick={() => hasChildren && setExpanded(!expanded)}
+      >
+        {isDir ? (
+          <FolderOpen className={`w-3.5 h-3.5 ${node.suspicious ? "text-[#f43f5e]" : "text-yellow-400"}`} />
+        ) : extInfo ? (
+          <span className={`text-[11px] leading-none ${extInfo.color}`}>{extInfo.icon}</span>
+        ) : (
+          <File className="w-3 h-3 text-slate-400" />
+        )}
+        
+        <span className={node.suspicious ? "font-bold" : ""}>{node.name}</span>
+        
+        {hasChildren && (
+          <span className="ml-2 text-[0.6rem] bg-black/30 px-1.5 py-0.5 rounded text-slate-400">
+            {node.children!.length}
+          </span>
+        )}
+
+        {node.suspicious && (
+          <AlertTriangle className="w-3 h-3 text-[#f43f5e] ml-1" />
+        )}
+      </div>
+      
+      {/* Connecting lines and children */}
+      {hasChildren && expanded && (
+        <div className="flex items-center">
+          {/* Horizontal line from parent */}
+          <div className="w-6 h-px bg-slate-600"></div>
+          
+          {/* Vertical spine and children list */}
+          <div className="flex flex-col relative py-2 gap-3 border-l border-slate-600 pl-6 ml-[-1px]">
+            {node.children!.map((child, idx) => (
+              <div key={child.path} className="relative flex items-center">
+                {/* Horizontal line to child */}
+                <div className="absolute w-6 h-px bg-slate-600 left-[-24px] top-1/2 -translate-y-1/2"></div>
+                
+                {/* Hide the vertical border overflow for first/last items */}
+                {idx === 0 && <div className="absolute w-px bg-[rgba(15,23,42,1)] left-[-1px] top-0 bottom-1/2 z-0"></div>}
+                {idx === node.children!.length - 1 && <div className="absolute w-px bg-[rgba(15,23,42,1)] left-[-1px] top-1/2 bottom-0 z-0"></div>}
+                
+                <FlowchartNode node={child} depth={depth + 1} />
+              </div>
+            ))}
+          </div>
         </div>
       )}
-      {/* Legend */}
-      <div className="absolute bottom-3 right-3 flex gap-3 text-[0.6rem] font-mono text-[#94a3b8] bg-black/50 p-2 rounded">
-        <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-[#facc15]" /> Dir</span>
-        <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-[#60a5fa]" /> DEX</span>
-        <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-[#fb923c]" /> .so</span>
-        <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-[#f43f5e]" /> Suspicious</span>
+    </div>
+  );
+}
+
+function FlowchartView({ tree }: { tree: TreeNode[] }) {
+  // Wrap the top-level files in a single root node if there are many
+  const rootNode: TreeNode = {
+    name: "APK Root",
+    path: "/",
+    type: "dir",
+    children: tree,
+    suspicious: tree.some(n => n.suspicious)
+  };
+
+  return (
+    <div className="p-6 overflow-auto min-h-[400px] max-h-[600px] scrollbar-thin scrollbar-track-transparent scrollbar-thumb-slate-700 bg-[rgba(15,23,42,0.6)]">
+      <div className="min-w-max pb-8">
+        <FlowchartNode node={rootNode} depth={0} />
       </div>
     </div>
   );
@@ -429,7 +233,7 @@ export default function APKFileTree({ analysisId }: APKFileTreeProps) {
   const [data, setData] = useState<FileTreeData | null>(null);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
-  const [viewMode, setViewMode] = useState<"list" | "graph">("list");
+  const [viewMode, setViewMode] = useState<"list" | "flowchart">("list");
 
   const fetchTree = useCallback(async () => {
     try {
@@ -498,15 +302,15 @@ export default function APKFileTree({ analysisId }: APKFileTreeProps) {
               List
             </button>
             <button
-              onClick={() => setViewMode("graph")}
+              onClick={() => setViewMode("flowchart")}
               className={`flex items-center gap-1.5 px-3 py-1.5 text-[0.65rem] font-mono uppercase tracking-wider transition-all ${
-                viewMode === "graph"
+                viewMode === "flowchart"
                   ? "bg-white/10 text-white"
                   : "text-slate-400 hover:text-slate-200"
               }`}
             >
-              <GitBranch className="w-3 h-3" />
-              Graph
+              <Network className="w-3 h-3" />
+              Flowchart
             </button>
           </div>
           <div className="flex items-center gap-3 text-xs text-slate-300">
@@ -564,9 +368,7 @@ export default function APKFileTree({ analysisId }: APKFileTreeProps) {
           </div>
         </>
       ) : (
-        <div className="p-2 border-t border-slate-700/40">
-          <GraphView tree={data.tree} />
-        </div>
+        <FlowchartView tree={data.tree} />
       )}
     </div>
   );
