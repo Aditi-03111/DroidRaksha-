@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect, useCallback, useRef } from "react";
-import { ChevronRight, ChevronDown, ChevronUp, Folder, FolderOpen, File, AlertTriangle, Package, List, GitBranch, Network, X } from "lucide-react";
+import { ChevronRight, ChevronDown, ChevronUp, Folder, FolderOpen, File, AlertTriangle, Package, List, GitBranch, Network, X, ZoomIn, ZoomOut, Maximize } from "lucide-react";
 
 interface TreeNode {
   name: string;
@@ -288,6 +288,7 @@ function FlowchartNode({ node, depth = 0 }: { node: TreeNode; depth?: number }) 
 function FlowchartTreeView({ tree }: { tree: TreeNode[] }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [pan, setPan] = useState({ x: 0, y: 0 });
+  const [scale, setScale] = useState(1);
   const [isDragging, setIsDragging] = useState(false);
   const dragStart = useRef({ x: 0, y: 0 });
 
@@ -369,7 +370,7 @@ function FlowchartTreeView({ tree }: { tree: TreeNode[] }) {
         className="absolute inset-0 pointer-events-none opacity-20"
         style={{
           backgroundImage: "radial-gradient(#475569 1px, transparent 1px)",
-          backgroundSize: "30px 30px",
+          backgroundSize: `${30 * scale}px ${30 * scale}px`,
           backgroundPosition: `${pan.x}px ${pan.y}px`
         }}
       />
@@ -380,11 +381,17 @@ function FlowchartTreeView({ tree }: { tree: TreeNode[] }) {
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
+        onWheel={(e) => {
+          if (e.ctrlKey || e.metaKey || e.altKey) {
+            e.preventDefault();
+            setScale(s => Math.min(Math.max(0.1, s - e.deltaY * 0.005), 3));
+          }
+        }}
       >
-        {/* Panning layer */}
+        {/* Panning & Scaling layer */}
         <div 
-          className="absolute pt-10 px-20 pb-20 origin-top" 
-          style={{ transform: `translate(${pan.x}px, ${pan.y}px)` }}
+          className="absolute pt-10 px-20 pb-20 origin-top transition-transform duration-75" 
+          style={{ transform: `translate(${pan.x}px, ${pan.y}px) scale(${scale})` }}
         >
           <ul className="flex justify-center">
             <FlowchartNode node={rootNode} depth={0} />
@@ -392,11 +399,39 @@ function FlowchartTreeView({ tree }: { tree: TreeNode[] }) {
         </div>
       </div>
       
+      {/* Zoom Controls */}
+      <div className="absolute top-4 right-4 flex flex-col gap-2 bg-slate-900/80 border border-slate-700/80 p-1.5 rounded-lg shadow-xl backdrop-blur-md z-50">
+        <button 
+          onClick={() => setScale(s => Math.min(s + 0.2, 3))}
+          className="p-1.5 text-slate-300 hover:text-white hover:bg-slate-700 rounded transition-colors"
+          title="Zoom In"
+        >
+          <ZoomIn className="w-4 h-4" />
+        </button>
+        <button 
+          onClick={() => { setScale(1); setPan({ x: 0, y: 0 }); }}
+          className="p-1.5 text-slate-300 hover:text-white hover:bg-slate-700 rounded transition-colors"
+          title="Reset Zoom & Pan"
+        >
+          <Maximize className="w-4 h-4" />
+        </button>
+        <button 
+          onClick={() => setScale(s => Math.max(s - 0.2, 0.1))}
+          className="p-1.5 text-slate-300 hover:text-white hover:bg-slate-700 rounded transition-colors"
+          title="Zoom Out"
+        >
+          <ZoomOut className="w-4 h-4" />
+        </button>
+      </div>
+
       {/* Legend / Info */}
       <div className="absolute bottom-4 left-4 bg-black/50 border border-white/10 px-3 py-2 rounded-lg backdrop-blur-md pointer-events-none z-50">
-        <p className="text-xs text-slate-300 font-mono flex items-center gap-2">
-          <span className="w-2 h-2 rounded-full bg-blue-500 inline-block animate-pulse"></span>
-          Drag to pan. Click nodes to collapse/expand.
+        <p className="text-xs text-slate-300 font-mono flex flex-col gap-1">
+          <span className="flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-blue-500 inline-block animate-pulse"></span>
+            Drag to pan. Click nodes to collapse/expand.
+          </span>
+          <span className="text-[10px] text-slate-400">Ctrl/Cmd + Scroll to zoom</span>
         </p>
       </div>
     </div>
