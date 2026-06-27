@@ -189,8 +189,8 @@ function FlowchartNode({ node, depth = 0 }: { node: TreeNode; depth?: number }) 
   const isDir = node.type === "dir";
   const extInfo = node.ext ? EXT_ICONS[node.ext] : null;
 
-  // Group children to prevent infinite horizontal width
-  const displayChildren = node.children ? groupChildren(node.children) : [];
+  // Group children to prevent infinite horizontal width (only for real directories)
+  const displayChildren = (node.children && !node.virtual) ? groupChildren(node.children) : (node.children || []);
 
   return (
     <li className="relative float-left text-center list-none px-2 py-5 transition-all">
@@ -242,8 +242,31 @@ function FlowchartNode({ node, depth = 0 }: { node: TreeNode; depth?: number }) 
             <span className="text-[9px] text-slate-400 mt-1">{formatBytes(node.size)}</span>
           )}
           
-          {isDir && displayChildren.length > 0 && (
+          {node.virtual && expanded && node.children && (
+            <div className="mt-3 w-full max-h-48 overflow-y-auto scrollbar-thin scrollbar-thumb-indigo-500/50 text-left border-t border-indigo-500/30 pt-2 flex flex-col gap-1">
+              {node.children.map(f => {
+                const fExtInfo = f.ext ? EXT_ICONS[f.ext] : null;
+                return (
+                  <div key={f.path} className="flex items-center gap-1.5 text-[9px] hover:bg-indigo-500/20 px-1 py-0.5 rounded truncate">
+                    {fExtInfo ? (
+                      <span className={`text-[10px] leading-none flex-shrink-0 ${fExtInfo.color}`}>{fExtInfo.icon}</span>
+                    ) : (
+                      <File className="w-2.5 h-2.5 flex-shrink-0 text-indigo-300" />
+                    )}
+                    <span className="truncate text-indigo-100" title={f.name}>{f.name}</span>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {isDir && !node.virtual && displayChildren.length > 0 && (
             <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 bg-slate-900 border border-slate-600 rounded-full p-0.5 text-slate-400 shadow-md hover:bg-slate-700 transition-colors">
+              {expanded ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+            </div>
+          )}
+          {node.virtual && node.children && node.children.length > 0 && (
+            <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 bg-indigo-900 border border-indigo-500 rounded-full p-0.5 text-indigo-300 shadow-md hover:bg-indigo-800 transition-colors">
               {expanded ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
             </div>
           )}
@@ -251,7 +274,7 @@ function FlowchartNode({ node, depth = 0 }: { node: TreeNode; depth?: number }) 
       </div>
       
       {/* Children */}
-      {isDir && expanded && displayChildren.length > 0 && (
+      {isDir && !node.virtual && expanded && displayChildren.length > 0 && (
         <ul className="flex justify-center pt-5 relative org-tree">
           {displayChildren.map((child) => (
             <FlowchartNode key={child.path} node={child} depth={depth + 1} />

@@ -304,7 +304,7 @@ export default function ThreatCopilot({ analysisId, activeTab, filename, riskLev
                   onChange={(e) => setInput(e.target.value)}
                   placeholder="Ask about this analysis..."
                   disabled={isStreaming}
-                  className="flex-1 bg-[rgba(255,255,255,0.05)] border border-[rgba(255,255,255,0.1)] text-white text-[0.7rem] font-mono px-3 py-2 outline-none focus:border-[rgba(167,139,250,0.5)] transition-colors placeholder:text-[#64748b] disabled:opacity-50"
+                  className="flex-1 bg-[rgba(255,255,255,0.05)] border border-[rgba(255,255,255,0.1)] text-white text-[0.875rem] font-sans px-3 py-2 outline-none focus:border-[rgba(167,139,250,0.5)] transition-colors placeholder:text-[#64748b] disabled:opacity-50"
                 />
                 <button
                   type="submit"
