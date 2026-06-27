@@ -3,7 +3,10 @@ Threat Copilot API — DroidRaksha
 ================================
 Streaming chat endpoint that accepts a user question + analysis_id,
 fetches the full analysis context from the database, and streams
-a Gemini-powered conversational explanation back to the frontend.
+an LLM-powered conversational explanation back to the frontend.
+
+Primary: Google Gemini 2.0 Flash
+Fallback: Groq (Llama 3 70B) — used when Gemini is unavailable or fails.
 """
 from __future__ import annotations
 import os
@@ -17,6 +20,7 @@ from backend.db import database
 router = APIRouter()
 
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
+GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
 
 
 class CopilotRequest(BaseModel):
@@ -95,12 +99,12 @@ RULES:
 async def copilot_chat(req: CopilotRequest):
     """
     Streaming chat endpoint for the Threat Copilot.
-    Fetches the analysis context, builds a prompt, and streams Gemini's response.
+    Tries Gemini first, falls back to Groq if Gemini fails.
     """
-    if not GEMINI_API_KEY:
+    if not GEMINI_API_KEY and not GROQ_API_KEY:
         raise HTTPException(
             status_code=503,
-            detail="Gemini API key not configured. Set GEMINI_API_KEY in .env"
+            detail="No AI keys configured. Set GEMINI_API_KEY or GROQ_API_KEY in .env"
         )
 
     # Fetch analysis
@@ -115,27 +119,64 @@ async def copilot_chat(req: CopilotRequest):
     system_prompt = _build_system_prompt(data, req.context_tab)
 
     async def generate():
-        try:
-            import google.generativeai as genai
-            genai.configure(api_key=GEMINI_API_KEY)
+        used_fallback = False
 
-            model = genai.GenerativeModel(
-                "gemini-2.0-flash",
-                system_instruction=system_prompt,
-            )
+        # ── Try Gemini first ─────────────────────────────────────────────
+        if GEMINI_API_KEY:
+            try:
+                import google.generativeai as genai
+                genai.configure(api_key=GEMINI_API_KEY)
 
-            response = model.generate_content(
-                req.question,
-                stream=True,
-            )
+                model = genai.GenerativeModel(
+                    "gemini-2.0-flash",
+                    system_instruction=system_prompt,
+                )
 
-            for chunk in response:
-                if chunk.text:
-                    yield chunk.text
+                response = model.generate_content(
+                    req.question,
+                    stream=True,
+                )
 
-        except Exception as e:
-            logger.error(f"Copilot streaming error: {e}")
-            yield f"\n\n⚠️ I encountered an error: {str(e)[:200]}"
+                for chunk in response:
+                    if chunk.text:
+                        yield chunk.text
+
+                return  # Success — don't fall through to Groq
+
+            except Exception as e:
+                logger.warning(f"Gemini Copilot failed, falling back to Groq: {e}")
+                used_fallback = True
+
+        # ── Fallback: Groq (Llama 3 70B) ─────────────────────────────────
+        if (used_fallback or not GEMINI_API_KEY) and GROQ_API_KEY:
+            try:
+                from groq import Groq
+                client = Groq(api_key=GROQ_API_KEY)
+
+                response = client.chat.completions.create(
+                    model="llama-3.3-70b-versatile",
+                    messages=[
+                        {"role": "system", "content": system_prompt},
+                        {"role": "user", "content": req.question},
+                    ],
+                    temperature=0.4,
+                    max_tokens=1500,
+                    stream=True,
+                )
+
+                for chunk in response:
+                    delta = chunk.choices[0].delta
+                    if delta and delta.content:
+                        yield delta.content
+
+                return
+
+            except Exception as e:
+                logger.error(f"Groq Copilot also failed: {e}")
+                yield f"\n\n⚠️ Both AI services are unavailable. Error: {str(e)[:200]}"
+                return
+
+        yield "\n\n⚠️ No AI service available. Please check your API keys in .env"
 
     return StreamingResponse(
         generate(),
@@ -151,10 +192,10 @@ async def copilot_chat(req: CopilotRequest):
 async def copilot_quick_explain(req: CopilotRequest):
     """
     Non-streaming endpoint for quick tooltip explanations.
-    Returns a single JSON response for short questions.
+    Tries Gemini first, falls back to Groq.
     """
-    if not GEMINI_API_KEY:
-        return {"explanation": "AI Copilot requires a Gemini API key. Please configure GEMINI_API_KEY in your .env file."}
+    if not GEMINI_API_KEY and not GROQ_API_KEY:
+        return {"explanation": "No AI keys configured. Set GEMINI_API_KEY or GROQ_API_KEY in .env"}
 
     analysis = await database.get_analysis(req.analysis_id)
     if not analysis:
@@ -166,18 +207,43 @@ async def copilot_quick_explain(req: CopilotRequest):
 
     system_prompt = _build_system_prompt(data, req.context_tab)
 
-    try:
-        import google.generativeai as genai
-        genai.configure(api_key=GEMINI_API_KEY)
+    # ── Try Gemini first ─────────────────────────────────────────────
+    if GEMINI_API_KEY:
+        try:
+            import google.generativeai as genai
+            genai.configure(api_key=GEMINI_API_KEY)
 
-        model = genai.GenerativeModel(
-            "gemini-2.0-flash",
-            system_instruction=system_prompt + "\n\nKEEP YOUR ANSWER TO 2-3 SENTENCES MAX.",
-        )
+            model = genai.GenerativeModel(
+                "gemini-2.0-flash",
+                system_instruction=system_prompt + "\n\nKEEP YOUR ANSWER TO 2-3 SENTENCES MAX.",
+            )
 
-        result = model.generate_content(req.question)
-        return {"explanation": result.text}
+            result = model.generate_content(req.question)
+            return {"explanation": result.text}
 
-    except Exception as e:
-        logger.error(f"Copilot quick-explain error: {e}")
-        return {"explanation": f"I couldn't process that right now. Error: {str(e)[:100]}"}
+        except Exception as e:
+            logger.warning(f"Gemini quick-explain failed, trying Groq: {e}")
+
+    # ── Fallback: Groq ───────────────────────────────────────────────
+    if GROQ_API_KEY:
+        try:
+            from groq import Groq
+            client = Groq(api_key=GROQ_API_KEY)
+
+            response = client.chat.completions.create(
+                model="llama-3.3-70b-versatile",
+                messages=[
+                    {"role": "system", "content": system_prompt + "\n\nKEEP YOUR ANSWER TO 2-3 SENTENCES MAX."},
+                    {"role": "user", "content": req.question},
+                ],
+                temperature=0.4,
+                max_tokens=300,
+            )
+
+            return {"explanation": response.choices[0].message.content}
+
+        except Exception as e:
+            logger.error(f"Groq quick-explain also failed: {e}")
+
+    return {"explanation": "AI services are currently unavailable. Please try again later."}
+
