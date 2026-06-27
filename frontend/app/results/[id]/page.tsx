@@ -164,7 +164,7 @@ export default function ResultsPage() {
         )}
 
         {activeTab === "filetree" && (
-          <div className="space-y-4 max-w-4xl">
+          <div className="space-y-4">
             <p className="text-[0.65rem] font-mono text-muted uppercase tracking-widest border-l-2 border-border pl-3">
               Decoded APK structure. Suspicious entries highlighted.
             </p>
@@ -173,7 +173,7 @@ export default function ResultsPage() {
         )}
 
         {activeTab === "manifest" && (
-          <div className="space-y-4 max-w-5xl">
+          <div className="space-y-4">
             <p className="text-[0.65rem] font-mono text-muted uppercase tracking-widest border-l-2 border-border pl-3">
               Decoded AndroidManifest.xml. Dangerous permissions highlighted.
             </p>

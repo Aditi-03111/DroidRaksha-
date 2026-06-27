@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect, useCallback, useRef } from "react";
-import { ChevronRight, ChevronDown, Folder, FolderOpen, File, AlertTriangle, Package, List, GitBranch, Network } from "lucide-react";
+import { ChevronRight, ChevronDown, Folder, FolderOpen, File, AlertTriangle, Package, List, GitBranch, Network, X } from "lucide-react";
 
 interface TreeNode {
   name: string;
@@ -132,80 +132,23 @@ function TreeNodeView({
   );
 }
 
-/* ─── Flowchart View (Horizontal Interactive Tree) ────────────────────── */
+/* ─── Scattered Dropdown View ────────────────────────────────────────── */
 
-function FlowchartNode({ node, depth = 0 }: { node: TreeNode; depth?: number }) {
-  // Auto-expand the first couple of levels
-  const [expanded, setExpanded] = useState(depth < 1);
-  const isDir = node.type === "dir";
-  const hasChildren = isDir && node.children && node.children.length > 0;
-  const extInfo = node.ext ? EXT_ICONS[node.ext] : null;
-
-  return (
-    <div className="flex items-center">
-      {/* Node Card */}
-      <div 
-        className={`
-          flex items-center gap-2 px-3 py-2 rounded-lg border text-xs font-mono whitespace-nowrap
-          transition-all duration-300 relative z-10 select-none
-          ${node.suspicious 
-            ? "bg-[rgba(244,63,94,0.1)] border-[#f43f5e] text-[#fda4af] shadow-[0_0_10px_rgba(244,63,94,0.2)]" 
-            : "bg-slate-800/80 border-slate-700/60 text-slate-200 hover:border-slate-500"
-          }
-          ${hasChildren ? "cursor-pointer hover:bg-slate-700/80" : ""}
-        `}
-        onClick={() => hasChildren && setExpanded(!expanded)}
-      >
-        {isDir ? (
-          <FolderOpen className={`w-3.5 h-3.5 ${node.suspicious ? "text-[#f43f5e]" : "text-yellow-400"}`} />
-        ) : extInfo ? (
-          <span className={`text-[11px] leading-none ${extInfo.color}`}>{extInfo.icon}</span>
-        ) : (
-          <File className="w-3 h-3 text-slate-400" />
-        )}
-        
-        <span className={node.suspicious ? "font-bold" : ""}>{node.name}</span>
-        
-        {hasChildren && (
-          <span className="ml-2 text-[0.6rem] bg-black/30 px-1.5 py-0.5 rounded text-slate-400">
-            {node.children!.length}
-          </span>
-        )}
-
-        {node.suspicious && (
-          <AlertTriangle className="w-3 h-3 text-[#f43f5e] ml-1" />
-        )}
-      </div>
-      
-      {/* Connecting lines and children */}
-      {hasChildren && expanded && (
-        <div className="flex items-center">
-          {/* Horizontal line from parent */}
-          <div className="w-6 h-px bg-slate-600"></div>
-          
-          {/* Vertical spine and children list */}
-          <div className="flex flex-col relative py-2 gap-3 border-l border-slate-600 pl-6 ml-[-1px]">
-            {node.children!.map((child, idx) => (
-              <div key={child.path} className="relative flex items-center">
-                {/* Horizontal line to child */}
-                <div className="absolute w-6 h-px bg-slate-600 left-[-24px] top-1/2 -translate-y-1/2"></div>
-                
-                {/* Hide the vertical border overflow for first/last items */}
-                {idx === 0 && <div className="absolute w-px bg-[rgba(15,23,42,1)] left-[-1px] top-0 bottom-1/2 z-0"></div>}
-                {idx === node.children!.length - 1 && <div className="absolute w-px bg-[rgba(15,23,42,1)] left-[-1px] top-1/2 bottom-0 z-0"></div>}
-                
-                <FlowchartNode node={child} depth={depth + 1} />
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-    </div>
-  );
+interface ActiveScatteredNode {
+  id: string; // path
+  node: TreeNode;
+  parentId: string | null;
+  x: number;
+  y: number;
 }
 
-function FlowchartView({ tree }: { tree: TreeNode[] }) {
-  // Wrap the top-level files in a single root node if there are many
+function ScatteredView({ tree }: { tree: TreeNode[] }) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [dimensions, setDimensions] = useState({ w: 800, h: 600 });
+  const [pan, setPan] = useState({ x: 0, y: 0 });
+  const [isDraggingCanvas, setIsDraggingCanvas] = useState(false);
+  const dragStart = useRef({ x: 0, y: 0 });
+
   const rootNode: TreeNode = {
     name: "APK Root",
     path: "/",
@@ -214,10 +157,236 @@ function FlowchartView({ tree }: { tree: TreeNode[] }) {
     suspicious: tree.some(n => n.suspicious)
   };
 
+  const [activeNodes, setActiveNodes] = useState<ActiveScatteredNode[]>([]);
+  const [expandedDropdowns, setExpandedDropdowns] = useState<Set<string>>(new Set(["/"]));
+
+  useEffect(() => {
+    if (containerRef.current) {
+      const rect = containerRef.current.getBoundingClientRect();
+      setDimensions({ w: rect.width, h: 500 });
+      // Initialize root in center
+      setActiveNodes([
+        { id: "/", node: rootNode, parentId: null, x: rect.width / 4, y: 250 }
+      ]);
+    }
+  }, []);
+
+  const handlePointerDownCanvas = (e: React.PointerEvent) => {
+    if (e.target !== containerRef.current && (e.target as HTMLElement).tagName !== "svg") return;
+    setIsDraggingCanvas(true);
+    dragStart.current = { x: e.clientX - pan.x, y: e.clientY - pan.y };
+    (e.target as HTMLElement).setPointerCapture(e.pointerId);
+  };
+
+  const handlePointerMoveCanvas = (e: React.PointerEvent) => {
+    if (!isDraggingCanvas) return;
+    setPan({
+      x: e.clientX - dragStart.current.x,
+      y: e.clientY - dragStart.current.y
+    });
+  };
+
+  const handlePointerUpCanvas = (e: React.PointerEvent) => {
+    setIsDraggingCanvas(false);
+    (e.target as HTMLElement).releasePointerCapture(e.pointerId);
+  };
+
+  const toggleDropdown = (id: string) => {
+    setExpandedDropdowns(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const spawnChildNode = (child: TreeNode, parentNode: ActiveScatteredNode) => {
+    // If already exists, just highlight it or do nothing
+    if (activeNodes.find(n => n.id === child.path)) return;
+
+    const angle = (Math.random() - 0.5) * Math.PI; // -90 to +90 deg
+    const distance = 250 + Math.random() * 100;
+    
+    // Spawn to the right of parent with some random scatter
+    const newX = parentNode.x + Math.cos(angle * 0.5) * distance;
+    const newY = parentNode.y + Math.sin(angle * 0.5) * distance;
+
+    setActiveNodes(prev => [...prev, {
+      id: child.path,
+      node: child,
+      parentId: parentNode.id,
+      x: newX,
+      y: newY
+    }]);
+    
+    // Auto expand the newly spawned folder dropdown
+    setExpandedDropdowns(prev => {
+      const next = new Set(prev);
+      next.add(child.path);
+      return next;
+    });
+  };
+
+  const removeNode = (id: string) => {
+    // recursively remove this node and all descendants
+    const getDescendants = (parentId: string, current: string[] = []): string[] => {
+      const children = activeNodes.filter(n => n.parentId === parentId);
+      children.forEach(c => {
+        current.push(c.id);
+        getDescendants(c.id, current);
+      });
+      return current;
+    };
+    const toRemove = new Set([id, ...getDescendants(id)]);
+    setActiveNodes(prev => prev.filter(n => !toRemove.has(n.id)));
+  };
+
   return (
-    <div className="p-6 overflow-auto min-h-[400px] max-h-[600px] scrollbar-thin scrollbar-track-transparent scrollbar-thumb-slate-700 bg-[rgba(15,23,42,0.6)]">
-      <div className="min-w-max pb-8">
-        <FlowchartNode node={rootNode} depth={0} />
+    <div 
+      ref={containerRef}
+      className={`relative w-full h-[500px] overflow-hidden bg-[rgba(15,23,42,0.8)] border-t border-slate-700/50 ${isDraggingCanvas ? "cursor-grabbing" : "cursor-grab"}`}
+      onPointerDown={handlePointerDownCanvas}
+      onPointerMove={handlePointerMoveCanvas}
+      onPointerUp={handlePointerUpCanvas}
+    >
+      {/* Background Grid for visual context */}
+      <div 
+        className="absolute inset-0 pointer-events-none opacity-20"
+        style={{
+          backgroundImage: "radial-gradient(#475569 1px, transparent 1px)",
+          backgroundSize: "30px 30px",
+          backgroundPosition: `${pan.x}px ${pan.y}px`
+        }}
+      />
+
+      {/* SVG for connecting lines */}
+      <svg className="absolute inset-0 pointer-events-none z-0" style={{ transform: `translate(${pan.x}px, ${pan.y}px)` }}>
+        {activeNodes.map(node => {
+          if (!node.parentId) return null;
+          const parent = activeNodes.find(n => n.id === node.parentId);
+          if (!parent) return null;
+          
+          // Draw curved line from parent to child
+          const startX = parent.x + 100; // approximate center right of parent card
+          const startY = parent.y;
+          const endX = node.x - 100; // approximate center left of child card
+          const endY = node.y;
+
+          return (
+            <path
+              key={`${node.parentId}-${node.id}`}
+              d={`M ${startX} ${startY} C ${startX + 100} ${startY}, ${endX - 100} ${endY}, ${endX} ${endY}`}
+              fill="none"
+              stroke={node.node.suspicious ? "rgba(244,63,94,0.4)" : "rgba(148,163,184,0.3)"}
+              strokeWidth={node.node.suspicious ? 2 : 1.5}
+            />
+          );
+        })}
+      </svg>
+
+      {/* Nodes */}
+      <div className="absolute inset-0 pointer-events-none" style={{ transform: `translate(${pan.x}px, ${pan.y}px)` }}>
+        {activeNodes.map(activeNode => {
+          const { id, node, x, y } = activeNode;
+          const isExpanded = expandedDropdowns.has(id);
+
+          return (
+            <div
+              key={id}
+              className={`absolute pointer-events-auto flex flex-col items-center select-none shadow-xl`}
+              style={{
+                left: x,
+                top: y,
+                transform: "translate(-50%, -50%)",
+                width: 260
+              }}
+            >
+              {/* Node Header Card */}
+              <div 
+                className={`
+                  w-full flex items-center justify-between gap-2 px-3 py-2 rounded-lg border text-sm font-mono z-10 cursor-pointer
+                  transition-colors backdrop-blur-md
+                  ${node.suspicious 
+                    ? "bg-rose-950/80 border-rose-500 shadow-[0_0_15px_rgba(244,63,94,0.3)] text-rose-200" 
+                    : "bg-slate-800/95 border-slate-600 text-slate-100 hover:border-indigo-400"
+                  }
+                `}
+                onClick={() => toggleDropdown(id)}
+              >
+                <div className="flex items-center gap-2 truncate">
+                  <FolderOpen className={`w-4 h-4 flex-shrink-0 ${node.suspicious ? "text-rose-400" : "text-yellow-400"}`} />
+                  <span className="truncate font-semibold">{node.name}</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  {id !== "/" && (
+                    <button 
+                      onClick={(e) => { e.stopPropagation(); removeNode(id); }}
+                      className="p-1 hover:bg-white/10 rounded-full transition-colors text-slate-400 hover:text-white"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  )}
+                  <ChevronDown className={`w-4 h-4 transition-transform ${isExpanded ? "rotate-180" : ""}`} />
+                </div>
+              </div>
+
+              {/* Node Content Dropdown */}
+              {isExpanded && node.children && (
+                <div className="w-full mt-2 bg-slate-900/95 border border-slate-700/80 rounded-lg overflow-hidden shadow-2xl z-20 max-h-64 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-600 backdrop-blur-xl">
+                  {node.children.map((child, idx) => {
+                    const isDir = child.type === "dir";
+                    const extInfo = child.ext ? EXT_ICONS[child.ext] : null;
+                    const isSpawned = isDir && activeNodes.some(n => n.id === child.path);
+
+                    return (
+                      <div 
+                        key={child.path}
+                        className={`
+                          flex items-center justify-between px-3 py-2 text-xs font-mono border-b border-slate-800/50 last:border-0
+                          ${child.suspicious ? "bg-rose-500/10 hover:bg-rose-500/20" : "hover:bg-slate-800/80"}
+                          ${isDir ? "cursor-pointer" : ""}
+                        `}
+                        onClick={() => {
+                          if (isDir) spawnChildNode(child, activeNode);
+                        }}
+                      >
+                        <div className="flex items-center gap-2 truncate">
+                          {isDir ? (
+                            <Folder className={`w-3.5 h-3.5 flex-shrink-0 ${child.suspicious ? "text-rose-400" : "text-yellow-500"}`} />
+                          ) : extInfo ? (
+                            <span className={`text-[11px] leading-none ${extInfo.color}`}>{extInfo.icon}</span>
+                          ) : (
+                            <File className="w-3 h-3 text-slate-400 flex-shrink-0" />
+                          )}
+                          <span className={`truncate ${child.suspicious ? "text-rose-300 font-bold" : "text-slate-300"} ${isSpawned ? "opacity-50 line-through" : ""}`}>
+                            {child.name}
+                          </span>
+                        </div>
+                        
+                        <div className="flex items-center gap-2 flex-shrink-0">
+                          {child.suspicious && <AlertTriangle className="w-3 h-3 text-rose-500" title={child.warning} />}
+                          {!isDir && child.size != null && <span className="text-[9px] text-slate-500">{formatBytes(child.size)}</span>}
+                          {isDir && !isSpawned && <ChevronRight className="w-3 h-3 text-slate-500" />}
+                        </div>
+                      </div>
+                    );
+                  })}
+                  {node.children.length === 0 && (
+                    <div className="px-3 py-3 text-xs text-slate-500 text-center italic">Empty directory</div>
+                  )}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+      
+      {/* Legend / Info */}
+      <div className="absolute bottom-4 left-4 bg-black/50 border border-white/10 px-3 py-2 rounded-lg backdrop-blur-md pointer-events-none">
+        <p className="text-xs text-slate-300 font-mono flex items-center gap-2">
+          <span className="w-2 h-2 rounded-full bg-blue-500 inline-block animate-pulse"></span>
+          Click folders in dropdowns to expand them on canvas
+        </p>
       </div>
     </div>
   );
@@ -233,7 +402,7 @@ export default function APKFileTree({ analysisId }: APKFileTreeProps) {
   const [data, setData] = useState<FileTreeData | null>(null);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
-  const [viewMode, setViewMode] = useState<"list" | "flowchart">("list");
+  const [viewMode, setViewMode] = useState<"list" | "scattered">("scattered");
 
   const fetchTree = useCallback(async () => {
     try {
@@ -302,15 +471,15 @@ export default function APKFileTree({ analysisId }: APKFileTreeProps) {
               List
             </button>
             <button
-              onClick={() => setViewMode("flowchart")}
+              onClick={() => setViewMode("scattered")}
               className={`flex items-center gap-1.5 px-3 py-1.5 text-[0.65rem] font-mono uppercase tracking-wider transition-all ${
-                viewMode === "flowchart"
+                viewMode === "scattered"
                   ? "bg-white/10 text-white"
                   : "text-slate-400 hover:text-slate-200"
               }`}
             >
               <Network className="w-3 h-3" />
-              Flowchart
+              Scattered
             </button>
           </div>
           <div className="flex items-center gap-3 text-xs text-slate-300">
@@ -368,7 +537,7 @@ export default function APKFileTree({ analysisId }: APKFileTreeProps) {
           </div>
         </>
       ) : (
-        <FlowchartView tree={data.tree} />
+        <ScatteredView tree={data.tree} />
       )}
     </div>
   );
