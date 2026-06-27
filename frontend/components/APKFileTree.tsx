@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect, useCallback, useRef } from "react";
-import { ChevronRight, ChevronDown, Folder, FolderOpen, File, AlertTriangle, Package, List, GitBranch, Network, X } from "lucide-react";
+import { ChevronRight, ChevronDown, ChevronUp, Folder, FolderOpen, File, AlertTriangle, Package, List, GitBranch, Network, X } from "lucide-react";
 
 interface TreeNode {
   name: string;
@@ -132,21 +132,84 @@ function TreeNodeView({
   );
 }
 
-/* ─── Scattered Dropdown View ────────────────────────────────────────── */
+/* ─── Top-Down Flowchart Tree View ────────────────────────────────────────── */
 
-interface ActiveScatteredNode {
-  id: string; // path
-  node: TreeNode;
-  parentId: string | null;
-  x: number;
-  y: number;
+function FlowchartNode({ node, depth = 0 }: { node: TreeNode; depth?: number }) {
+  // Expand everything at starting
+  const [expanded, setExpanded] = useState(true);
+  const isDir = node.type === "dir";
+  const extInfo = node.ext ? EXT_ICONS[node.ext] : null;
+
+  return (
+    <li className="relative float-left text-center list-none px-2 py-5 transition-all">
+      {/* Node Card */}
+      <div className="inline-flex flex-col items-center relative z-10">
+        <div 
+          className={`
+            flex flex-col items-center justify-center px-3 py-2 rounded-lg border min-w-[100px] max-w-[140px]
+            transition-all duration-300 shadow-xl backdrop-blur-sm
+            ${node.suspicious 
+              ? "bg-rose-950/90 border-rose-500 text-rose-200 shadow-[0_0_15px_rgba(244,63,94,0.4)]" 
+              : isDir 
+                ? "bg-slate-800/90 border-indigo-500/60 text-slate-100 hover:border-indigo-400 hover:bg-slate-700" 
+                : "bg-slate-800/50 border-slate-700/80 text-slate-300 hover:border-slate-500 hover:bg-slate-700"
+            }
+            ${isDir ? "cursor-pointer" : ""}
+          `}
+          onClick={() => isDir && setExpanded(!expanded)}
+        >
+          <div className="flex items-center gap-1.5 mb-1.5">
+            {isDir ? (
+              <FolderOpen className={`w-5 h-5 flex-shrink-0 ${node.suspicious ? "text-rose-400" : "text-yellow-400"}`} />
+            ) : extInfo ? (
+              <span className={`text-[16px] leading-none flex-shrink-0 ${extInfo.color}`}>{extInfo.icon}</span>
+            ) : (
+              <File className="w-4 h-4 text-slate-400 flex-shrink-0" />
+            )}
+            {node.suspicious && <span title={node.warning}><AlertTriangle className="w-4 h-4 text-rose-500 flex-shrink-0" /></span>}
+          </div>
+          
+          <span 
+            className="text-[10px] text-center font-mono w-full break-all leading-tight" 
+            style={{ 
+              display: "-webkit-box", 
+              WebkitLineClamp: 3, 
+              WebkitBoxOrient: "vertical", 
+              overflow: "hidden" 
+            }}
+            title={node.name}
+          >
+            {node.name}
+          </span>
+
+          {!isDir && node.size != null && (
+            <span className="text-[9px] text-slate-400 mt-1">{formatBytes(node.size)}</span>
+          )}
+          
+          {isDir && node.children && node.children.length > 0 && (
+            <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 bg-slate-900 border border-slate-600 rounded-full p-0.5 text-slate-400 shadow-md">
+              {expanded ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+            </div>
+          )}
+        </div>
+      </div>
+      
+      {/* Children */}
+      {isDir && expanded && node.children && node.children.length > 0 && (
+        <ul className="flex justify-center pt-5 relative org-tree">
+          {node.children.map((child) => (
+            <FlowchartNode key={child.path} node={child} depth={depth + 1} />
+          ))}
+        </ul>
+      )}
+    </li>
+  );
 }
 
-function ScatteredView({ tree }: { tree: TreeNode[] }) {
+function FlowchartTreeView({ tree }: { tree: TreeNode[] }) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const [dimensions, setDimensions] = useState({ w: 800, h: 600 });
   const [pan, setPan] = useState({ x: 0, y: 0 });
-  const [isDraggingCanvas, setIsDraggingCanvas] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
   const dragStart = useRef({ x: 0, y: 0 });
 
   const rootNode: TreeNode = {
@@ -157,99 +220,72 @@ function ScatteredView({ tree }: { tree: TreeNode[] }) {
     suspicious: tree.some(n => n.suspicious)
   };
 
-  const [activeNodes, setActiveNodes] = useState<ActiveScatteredNode[]>([]);
-  const [expandedDropdowns, setExpandedDropdowns] = useState<Set<string>>(new Set(["/"]));
-
-  useEffect(() => {
-    if (containerRef.current) {
-      const rect = containerRef.current.getBoundingClientRect();
-      setDimensions({ w: rect.width, h: 500 });
-      // Initialize root in center
-      setActiveNodes([
-        { id: "/", node: rootNode, parentId: null, x: rect.width / 4, y: 250 }
-      ]);
-    }
-  }, []);
-
-  const handlePointerDownCanvas = (e: React.PointerEvent) => {
-    if (e.target !== containerRef.current && (e.target as HTMLElement).tagName !== "svg") return;
-    setIsDraggingCanvas(true);
+  const handlePointerDown = (e: React.PointerEvent) => {
+    setIsDragging(true);
     dragStart.current = { x: e.clientX - pan.x, y: e.clientY - pan.y };
     (e.target as HTMLElement).setPointerCapture(e.pointerId);
   };
 
-  const handlePointerMoveCanvas = (e: React.PointerEvent) => {
-    if (!isDraggingCanvas) return;
+  const handlePointerMove = (e: React.PointerEvent) => {
+    if (!isDragging) return;
     setPan({
       x: e.clientX - dragStart.current.x,
       y: e.clientY - dragStart.current.y
     });
   };
 
-  const handlePointerUpCanvas = (e: React.PointerEvent) => {
-    setIsDraggingCanvas(false);
+  const handlePointerUp = (e: React.PointerEvent) => {
+    setIsDragging(false);
     (e.target as HTMLElement).releasePointerCapture(e.pointerId);
-  };
-
-  const toggleDropdown = (id: string) => {
-    setExpandedDropdowns(prev => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  };
-
-  const spawnChildNode = (child: TreeNode, parentNode: ActiveScatteredNode) => {
-    // If already exists, just highlight it or do nothing
-    if (activeNodes.find(n => n.id === child.path)) return;
-
-    const angle = (Math.random() - 0.5) * Math.PI; // -90 to +90 deg
-    const distance = 250 + Math.random() * 100;
-    
-    // Spawn to the right of parent with some random scatter
-    const newX = parentNode.x + Math.cos(angle * 0.5) * distance;
-    const newY = parentNode.y + Math.sin(angle * 0.5) * distance;
-
-    setActiveNodes(prev => [...prev, {
-      id: child.path,
-      node: child,
-      parentId: parentNode.id,
-      x: newX,
-      y: newY
-    }]);
-    
-    // Auto expand the newly spawned folder dropdown
-    setExpandedDropdowns(prev => {
-      const next = new Set(prev);
-      next.add(child.path);
-      return next;
-    });
-  };
-
-  const removeNode = (id: string) => {
-    // recursively remove this node and all descendants
-    const getDescendants = (parentId: string, current: string[] = []): string[] => {
-      const children = activeNodes.filter(n => n.parentId === parentId);
-      children.forEach(c => {
-        current.push(c.id);
-        getDescendants(c.id, current);
-      });
-      return current;
-    };
-    const toRemove = new Set([id, ...getDescendants(id)]);
-    setActiveNodes(prev => prev.filter(n => !toRemove.has(n.id)));
   };
 
   return (
     <div 
-      ref={containerRef}
-      className={`relative w-full h-[500px] overflow-hidden bg-[rgba(15,23,42,0.8)] border-t border-slate-700/50 ${isDraggingCanvas ? "cursor-grabbing" : "cursor-grab"}`}
-      onPointerDown={handlePointerDownCanvas}
-      onPointerMove={handlePointerMoveCanvas}
-      onPointerUp={handlePointerUpCanvas}
+      className="relative w-full h-[600px] overflow-hidden bg-[rgba(15,23,42,0.8)] border-t border-slate-700/50"
     >
-      {/* Background Grid for visual context */}
+      {/* CSS for drawing the org-chart connecting lines using borders */}
+      <style dangerouslySetInnerHTML={{__html: `
+        .org-tree::before {
+          content: '';
+          position: absolute;
+          top: 0;
+          left: 50%;
+          border-left: 1px solid #475569;
+          width: 0;
+          height: 20px;
+        }
+        .org-tree li::before, .org-tree li::after {
+          content: '';
+          position: absolute;
+          top: 0;
+          right: 50%;
+          border-top: 1px solid #475569;
+          width: 50%;
+          height: 20px;
+        }
+        .org-tree li::after {
+          right: auto;
+          left: 50%;
+          border-left: 1px solid #475569;
+        }
+        .org-tree li:only-child::after, .org-tree li:only-child::before {
+          display: none;
+        }
+        .org-tree li:only-child {
+          padding-top: 0;
+        }
+        .org-tree li:first-child::before, .org-tree li:last-child::after {
+          border: 0 none;
+        }
+        .org-tree li:last-child::before {
+          border-right: 1px solid #475569;
+          border-radius: 0 5px 0 0;
+        }
+        .org-tree li:first-child::after {
+          border-radius: 5px 0 0 0;
+        }
+      `}} />
+
       <div 
         className="absolute inset-0 pointer-events-none opacity-20"
         style={{
@@ -259,132 +295,29 @@ function ScatteredView({ tree }: { tree: TreeNode[] }) {
         }}
       />
 
-      {/* SVG for connecting lines */}
-      <svg className="absolute inset-0 pointer-events-none z-0" style={{ transform: `translate(${pan.x}px, ${pan.y}px)` }}>
-        {activeNodes.map(node => {
-          if (!node.parentId) return null;
-          const parent = activeNodes.find(n => n.id === node.parentId);
-          if (!parent) return null;
-          
-          // Draw curved line from parent to child
-          const startX = parent.x + 100; // approximate center right of parent card
-          const startY = parent.y;
-          const endX = node.x - 100; // approximate center left of child card
-          const endY = node.y;
-
-          return (
-            <path
-              key={`${node.parentId}-${node.id}`}
-              d={`M ${startX} ${startY} C ${startX + 100} ${startY}, ${endX - 100} ${endY}, ${endX} ${endY}`}
-              fill="none"
-              stroke={node.node.suspicious ? "rgba(244,63,94,0.4)" : "rgba(148,163,184,0.3)"}
-              strokeWidth={node.node.suspicious ? 2 : 1.5}
-            />
-          );
-        })}
-      </svg>
-
-      {/* Nodes */}
-      <div className="absolute inset-0 pointer-events-none" style={{ transform: `translate(${pan.x}px, ${pan.y}px)` }}>
-        {activeNodes.map(activeNode => {
-          const { id, node, x, y } = activeNode;
-          const isExpanded = expandedDropdowns.has(id);
-
-          return (
-            <div
-              key={id}
-              className={`absolute pointer-events-auto flex flex-col items-center select-none shadow-xl`}
-              style={{
-                left: x,
-                top: y,
-                transform: "translate(-50%, -50%)",
-                width: 260
-              }}
-            >
-              {/* Node Header Card */}
-              <div 
-                className={`
-                  w-full flex items-center justify-between gap-2 px-3 py-2 rounded-lg border text-sm font-mono z-10 cursor-pointer
-                  transition-colors backdrop-blur-md
-                  ${node.suspicious 
-                    ? "bg-rose-950/80 border-rose-500 shadow-[0_0_15px_rgba(244,63,94,0.3)] text-rose-200" 
-                    : "bg-slate-800/95 border-slate-600 text-slate-100 hover:border-indigo-400"
-                  }
-                `}
-                onClick={() => toggleDropdown(id)}
-              >
-                <div className="flex items-center gap-2 truncate">
-                  <FolderOpen className={`w-4 h-4 flex-shrink-0 ${node.suspicious ? "text-rose-400" : "text-yellow-400"}`} />
-                  <span className="truncate font-semibold">{node.name}</span>
-                </div>
-                <div className="flex items-center gap-1">
-                  {id !== "/" && (
-                    <button 
-                      onClick={(e) => { e.stopPropagation(); removeNode(id); }}
-                      className="p-1 hover:bg-white/10 rounded-full transition-colors text-slate-400 hover:text-white"
-                    >
-                      <X className="w-3 h-3" />
-                    </button>
-                  )}
-                  <ChevronDown className={`w-4 h-4 transition-transform ${isExpanded ? "rotate-180" : ""}`} />
-                </div>
-              </div>
-
-              {/* Node Content Dropdown */}
-              {isExpanded && node.children && (
-                <div className="w-full mt-2 bg-slate-900/95 border border-slate-700/80 rounded-lg overflow-hidden shadow-2xl z-20 max-h-64 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-600 backdrop-blur-xl">
-                  {node.children.map((child, idx) => {
-                    const isDir = child.type === "dir";
-                    const extInfo = child.ext ? EXT_ICONS[child.ext] : null;
-                    const isSpawned = isDir && activeNodes.some(n => n.id === child.path);
-
-                    return (
-                      <div 
-                        key={child.path}
-                        className={`
-                          flex items-center justify-between px-3 py-2 text-xs font-mono border-b border-slate-800/50 last:border-0
-                          ${child.suspicious ? "bg-rose-500/10 hover:bg-rose-500/20" : "hover:bg-slate-800/80"}
-                          ${isDir ? "cursor-pointer" : ""}
-                        `}
-                        onClick={() => {
-                          if (isDir) spawnChildNode(child, activeNode);
-                        }}
-                      >
-                        <div className="flex items-center gap-2 truncate">
-                          {isDir ? (
-                            <Folder className={`w-3.5 h-3.5 flex-shrink-0 ${child.suspicious ? "text-rose-400" : "text-yellow-500"}`} />
-                          ) : extInfo ? (
-                            <span className={`text-[11px] leading-none ${extInfo.color}`}>{extInfo.icon}</span>
-                          ) : (
-                            <File className="w-3 h-3 text-slate-400 flex-shrink-0" />
-                          )}
-                          <span className={`truncate ${child.suspicious ? "text-rose-300 font-bold" : "text-slate-300"} ${isSpawned ? "opacity-50 line-through" : ""}`}>
-                            {child.name}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-2 flex-shrink-0">
-                          {child.suspicious && <span title={child.warning}><AlertTriangle className="w-3 h-3 text-rose-500" /></span>}
-                          {!isDir && child.size != null && <span className="text-[9px] text-slate-500">{formatBytes(child.size)}</span>}
-                          {isDir && !isSpawned && <ChevronRight className="w-3 h-3 text-slate-500" />}
-                        </div>
-                      </div>
-                    );
-                  })}
-                  {node.children.length === 0 && (
-                    <div className="px-3 py-3 text-xs text-slate-500 text-center italic">Empty directory</div>
-                  )}
-                </div>
-              )}
-            </div>
-          );
-        })}
+      <div 
+        ref={containerRef}
+        className={`absolute inset-0 w-full h-full ${isDragging ? "cursor-grabbing" : "cursor-grab"} flex justify-center`}
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={handlePointerUp}
+      >
+        {/* Panning layer */}
+        <div 
+          className="absolute pt-10 px-20 pb-20 origin-top" 
+          style={{ transform: `translate(${pan.x}px, ${pan.y}px)` }}
+        >
+          <ul className="flex justify-center">
+            <FlowchartNode node={rootNode} depth={0} />
+          </ul>
+        </div>
       </div>
       
       {/* Legend / Info */}
-      <div className="absolute bottom-4 left-4 bg-black/50 border border-white/10 px-3 py-2 rounded-lg backdrop-blur-md pointer-events-none">
+      <div className="absolute bottom-4 left-4 bg-black/50 border border-white/10 px-3 py-2 rounded-lg backdrop-blur-md pointer-events-none z-50">
         <p className="text-xs text-slate-300 font-mono flex items-center gap-2">
           <span className="w-2 h-2 rounded-full bg-blue-500 inline-block animate-pulse"></span>
-          Click folders in dropdowns to expand them on canvas
+          Drag to pan. Click nodes to collapse/expand.
         </p>
       </div>
     </div>
@@ -401,7 +334,7 @@ export default function APKFileTree({ analysisId }: APKFileTreeProps) {
   const [data, setData] = useState<FileTreeData | null>(null);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
-  const [viewMode, setViewMode] = useState<"list" | "scattered">("scattered");
+  const [viewMode, setViewMode] = useState<"list" | "flowchart">("flowchart");
 
   const fetchTree = useCallback(async () => {
     try {
@@ -470,15 +403,15 @@ export default function APKFileTree({ analysisId }: APKFileTreeProps) {
               List
             </button>
             <button
-              onClick={() => setViewMode("scattered")}
+              onClick={() => setViewMode("flowchart")}
               className={`flex items-center gap-1.5 px-3 py-1.5 text-[0.65rem] font-mono uppercase tracking-wider transition-all ${
-                viewMode === "scattered"
+                viewMode === "flowchart"
                   ? "bg-white/10 text-white"
                   : "text-slate-400 hover:text-slate-200"
               }`}
             >
               <Network className="w-3 h-3" />
-              Scattered
+              Flowchart
             </button>
           </div>
           <div className="flex items-center gap-3 text-xs text-slate-300">
@@ -536,7 +469,7 @@ export default function APKFileTree({ analysisId }: APKFileTreeProps) {
           </div>
         </>
       ) : (
-        <ScatteredView tree={data.tree} />
+        <FlowchartTreeView tree={data.tree} />
       )}
     </div>
   );
