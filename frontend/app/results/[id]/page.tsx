@@ -24,6 +24,7 @@ import BehaviourTimeline from "@/components/BehaviourTimeline";
 import CorrelationPanel from "@/components/CorrelationPanel";
 import DynamicAnalysisPanel from "@/components/DynamicAnalysisPanel";
 import DecompilerPanel from "@/components/DecompilerPanel";
+import ThreatCopilot from "@/components/ThreatCopilot";
 
 export default function ResultsPage() {
   const { id } = useParams() as { id: string };
@@ -308,6 +309,14 @@ export default function ResultsPage() {
           </div>
         )}
       </div>
+
+      {/* Floating Threat Copilot */}
+      <ThreatCopilot
+        analysisId={result.id}
+        activeTab={activeTab}
+        filename={result.filename}
+        riskLevel={result.risk.risk_level}
+      />
     </div>
   );
 }
