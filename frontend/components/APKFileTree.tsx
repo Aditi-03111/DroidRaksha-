@@ -362,9 +362,8 @@ function ScatteredView({ tree }: { tree: TreeNode[] }) {
                             {child.name}
                           </span>
                         </div>
-                        
                         <div className="flex items-center gap-2 flex-shrink-0">
-                          {child.suspicious && <AlertTriangle className="w-3 h-3 text-rose-500" title={child.warning} />}
+                          {child.suspicious && <span title={child.warning}><AlertTriangle className="w-3 h-3 text-rose-500" /></span>}
                           {!isDir && child.size != null && <span className="text-[9px] text-slate-500">{formatBytes(child.size)}</span>}
                           {isDir && !isSpawned && <ChevronRight className="w-3 h-3 text-slate-500" />}
                         </div>
