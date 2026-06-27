@@ -243,15 +243,15 @@ function FlowchartNode({ node, depth = 0 }: { node: TreeNode; depth?: number }) 
           )}
           
           {node.virtual && expanded && node.children && (
-            <div className="mt-3 w-full max-h-48 overflow-y-auto scrollbar-thin scrollbar-thumb-indigo-500/50 text-left border-t border-indigo-500/30 pt-2 flex flex-col gap-1">
+            <div className="mt-3 w-full text-left border-t border-indigo-500/30 pt-2 flex flex-col gap-1.5">
               {node.children.map(f => {
                 const fExtInfo = f.ext ? EXT_ICONS[f.ext] : null;
                 return (
-                  <div key={f.path} className="flex items-center gap-1.5 text-[9px] hover:bg-indigo-500/20 px-1 py-0.5 rounded truncate">
+                  <div key={f.path} className="flex items-center gap-1.5 text-[10px] hover:bg-indigo-500/20 px-1 py-0.5 rounded truncate flex-shrink-0">
                     {fExtInfo ? (
-                      <span className={`text-[10px] leading-none flex-shrink-0 ${fExtInfo.color}`}>{fExtInfo.icon}</span>
+                      <span className={`text-[12px] leading-none flex-shrink-0 ${fExtInfo.color}`}>{fExtInfo.icon}</span>
                     ) : (
-                      <File className="w-2.5 h-2.5 flex-shrink-0 text-indigo-300" />
+                      <File className="w-3 h-3 flex-shrink-0 text-indigo-300" />
                     )}
                     <span className="truncate text-indigo-100" title={f.name}>{f.name}</span>
                   </div>
