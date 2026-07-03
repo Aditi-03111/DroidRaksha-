@@ -41,8 +41,8 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # ── Pre-download HuggingFace MalBERT model ───────────────────────────────────
-# Commented out to avoid downloading the ~1.6GB model and saving space during Docker build.
-# RUN python -c "from transformers import pipeline; pipeline('zero-shot-classification', model='facebook/bart-large-mnli')"
+# This bakes the ~1.6GB model into the Docker image so it doesn't download on startup
+RUN python -c "from transformers import pipeline; pipeline('zero-shot-classification', model='facebook/bart-large-mnli')"
 
 # ── JADX CLI (full distribution incl. lib/*.jar) ─────────────────────────────
 # Placed AFTER pip install so changing JADX does NOT bust the pip cache layer.
