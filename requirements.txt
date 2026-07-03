@@ -41,7 +41,7 @@ scikit-learn>=1.4.0
 joblib>=1.3.0
 
 # MalBERT (zero-shot via HuggingFace)
-transformers>=4.40.0
+transformers<4.45.0
 # torch full build — downloads CUDA/GPU libraries
 torch==2.1.2
 torchvision==0.16.2
