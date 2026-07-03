@@ -20,7 +20,7 @@ from backend.db.database import Base
 target_metadata = Base.metadata
 
 config = context.config
-config.set_main_option("sqlalchemy.url", os.getenv("DATABASE_URL", "sqlite+aiosqlite:///./droidraksha.db"))
+config.set_main_option("sqlalchemy.url", os.getenv("DATABASE_URL", "postgresql+asyncpg://postgres:postgres@db.xxxx.supabase.co:5432/postgres"))
 # ───────────────────────
 
 # Interpret the config file for Python logging.

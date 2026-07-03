@@ -50,12 +50,18 @@ if [ ! -f ".env" ]; then
     read -p "Enter VIRUSTOTAL_API_KEY: " VIRUSTOTAL_API_KEY
     read -p "Enter ABUSEIPDB_API_KEY: " ABUSEIPDB_API_KEY
 
+    read -p "Enter Supabase PostgreSQL URL: " DATABASE_URL
+    read -p "Enter Upstash Redis URL: " REDIS_URL
+    read -p "Enter MongoDB Atlas URL: " MONGO_URI
+
     cat <<EOF > .env
 GEMINI_API_KEY=$GEMINI_API_KEY
 GROQ_API_KEY=$GROQ_API_KEY
 VIRUSTOTAL_API_KEY=$VIRUSTOTAL_API_KEY
 ABUSEIPDB_API_KEY=$ABUSEIPDB_API_KEY
-DATABASE_URL=sqlite+aiosqlite:///./droidraksha.db
+DATABASE_URL=$DATABASE_URL
+REDIS_URL=$REDIS_URL
+MONGO_URI=$MONGO_URI
 UPLOAD_DIR=./uploads
 EOF
     echo "✅ .env file created."
@@ -63,9 +69,6 @@ fi
 
 # 7. Pull images and start the stack
 echo "🚀 Starting Docker Compose stack..."
-# Since images are built by GitHub Actions and pushed to GHCR, we should pull them.
-# The docker-compose.yml by default builds locally. We need to override it to use the GHCR images.
-
 # Create an override file for production
 cat <<EOF > docker-compose.override.yml
 version: "3.9"
@@ -77,8 +80,10 @@ services:
     image: ghcr.io/praju455/droidraksha-:main
     build: null
   frontend:
-    # If deploying frontend to Vercel, we can scale this down to 0 or leave it out.
-    # To disable frontend on VPS:
+    profiles: ["donotstart"]
+  redis:
+    profiles: ["donotstart"]
+  mongodb:
     profiles: ["donotstart"]
 EOF
 

@@ -12,7 +12,8 @@ from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 from sqlalchemy import String, Integer, Text, DateTime, select
 from loguru import logger
 
-DATABASE_URL = os.getenv("DATABASE_URL", "sqlite+aiosqlite:///./droidraksha.db")
+# Default to PostgreSQL (Supabase) if no DATABASE_URL is provided in production
+DATABASE_URL = os.getenv("DATABASE_URL", "postgresql+asyncpg://postgres:postgres@db.xxxx.supabase.co:5432/postgres")
 
 engine = create_async_engine(DATABASE_URL, echo=False)
 async_session_factory = async_sessionmaker(engine, expire_on_commit=False)
