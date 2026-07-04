@@ -19,7 +19,6 @@ import APKFileTree from "@/components/APKFileTree";
 import ManifestViewer from "@/components/ManifestViewer";
 import MalwareFamilyBadge from "@/components/MalwareFamilyBadge";
 import NetworkTrafficPanel from "@/components/NetworkTrafficPanel";
-import NetworkFlowDiagram from "@/components/NetworkFlowDiagram";
 import BehaviourTimeline from "@/components/BehaviourTimeline";
 import CorrelationPanel from "@/components/CorrelationPanel";
 import DynamicAnalysisPanel from "@/components/DynamicAnalysisPanel";
@@ -274,8 +273,7 @@ export default function ResultsPage() {
         {/* 🔬 Network Traffic Tab */}
         {activeTab === "network" && (
           <div className="space-y-6">
-            <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-              <NetworkFlowDiagram network={result.network ?? null} />
+            <div>
               <BehaviourTimeline result={result} network={result.network ?? null} />
             </div>
             <CorrelationPanel correlation={result.correlation ?? null} />

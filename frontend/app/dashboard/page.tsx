@@ -39,55 +39,20 @@ const FAMILY_COLORS: Record<string, string> = {
   Unknown:        "#475569",
 };
 
-// ── Mini Donut Chart ────────────────────────────────────────────────────────
-function DonutChart({ data }: { data: Record<string, number> }) {
-  const entries = Object.entries(data).filter(([, v]) => v > 0);
-  const total   = entries.reduce((s, [, v]) => s + v, 0);
-  if (total === 0) return <p className="text-muted font-mono text-xs text-center py-6">[ NO DATA ]</p>;
-
-  const R = 60, STROKE = 18, C = 2 * Math.PI * R;
-  let offset = 0;
-
-  return (
-    <div className="flex flex-col items-center gap-4">
-      <svg viewBox="0 0 160 160" className="w-40 h-40">
-        <circle cx="80" cy="80" r={R} fill="none" stroke="#111" strokeWidth={STROKE} />
-        {entries.map(([label, val]) => {
-          const pct  = val / total;
-          const dash = pct * C;
-          const gap  = C - dash;
-          const rot  = offset * 360 - 90;
-          offset += pct;
-          return (
-            <circle
-              key={label}
-              cx="80" cy="80" r={R}
-              fill="none"
-              stroke={FAMILY_COLORS[label] ?? "#555"}
-              strokeWidth={STROKE}
-              strokeDasharray={`${dash} ${gap}`}
-              strokeDashoffset={0}
-              transform={`rotate(${rot} 80 80)`}
-              className="transition-all duration-700"
-            />
-          );
-        })}
-        <text x="80" y="76" textAnchor="middle" className="fill-white font-mono" fontSize="20" fontWeight="bold">{total}</text>
-        <text x="80" y="94" textAnchor="middle" className="fill-[#555] font-mono uppercase" fontSize="8" letterSpacing="2">TOTAL</text>
-      </svg>
-
-      <div className="grid grid-cols-2 gap-x-4 gap-y-2 w-full">
-        {entries.map(([label, val]) => (
-          <div key={label} className="flex items-center gap-2">
-            <div className="w-1.5 h-1.5 rounded-none shrink-0" style={{ background: FAMILY_COLORS[label] ?? "#555" }} />
-            <span className="text-[0.65rem] text-muted font-mono uppercase tracking-wider truncate">{label}</span>
-            <span className="text-[0.65rem] text-secondary ml-auto font-mono">{val}</span>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
+const EMPTY_STATS: DashboardStats = {
+  total_analyzed: 0,
+  threats_detected: 0,
+  india_threats: 0,
+  critical_count: 0,
+  high_count: 0,
+  medium_count: 0,
+  low_count: 0,
+  safe_count: 0,
+  family_breakdown: {},
+  india_targeted: 0,
+  pcap_scans: 0,
+  recent_analyses: [],
+};
 
 // ── Risk Bar Chart ──────────────────────────────────────────────────────────
 function RiskBars({ stats }: { stats: DashboardStats }) {
@@ -227,6 +192,7 @@ type UploadState =
 export default function DashboardPage() {
   const router = useRouter();
   const [stats, setStats]       = useState<DashboardStats | null>(null);
+  const [statsError, setStatsError] = useState<string | null>(null);
   const [loading, setLoading]   = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [uploadState, setUploadState] = useState<UploadState>({ phase: "idle" });
@@ -236,6 +202,10 @@ export default function DashboardPage() {
     try {
       const data = await getStats();
       setStats(data);
+      setStatsError(null);
+    } catch (err: unknown) {
+      setStatsError(err instanceof Error ? err.message : "Unable to reach backend API");
+      setStats(null);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -267,8 +237,9 @@ export default function DashboardPage() {
   }, []);
 
   const isUploading = uploadState.phase === "uploading" || uploadState.phase === "progress";
-  const recentScans: RecentScan[] = stats?.recent_analyses ?? [];
-  const familyData  = stats?.family_breakdown ?? {};
+  const dashboardStats = stats ?? EMPTY_STATS;
+  const recentScans: RecentScan[] = dashboardStats.recent_analyses ?? [];
+  const familyData  = dashboardStats.family_breakdown ?? {};
 
   return (
     <div className="min-h-screen bg-background grid-bg relative p-6 md:p-12">
@@ -301,15 +272,24 @@ export default function DashboardPage() {
             <span className="mb-4 w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin"></span>
             INITIALIZING TERMINAL...
           </div>
-        ) : stats ? (
+        ) : (
           <div className="space-y-8">
+            {statsError && (
+              <div className="bg-[rgba(244,63,94,0.1)] border border-[rgba(244,63,94,0.35)] p-4 text-danger font-mono text-xs uppercase tracking-widest">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-2">
+                  <span>[ API OFFLINE ] Dashboard stats unavailable: {statsError}</span>
+                  <span className="text-muted">Start backend on port 8000, then refresh.</span>
+                </div>
+              </div>
+            )}
+
             {/* ── KPI Cards ── */}
             <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-6">
-              <StatCard label="Total Scans" value={stats.total_analyzed ?? 0} />
-              <StatCard label="Critical Threats" value={(stats.critical_count ?? 0) + (stats.high_count ?? 0)} pulseColor="#f43f5e" />
-              <StatCard label="India Targeted" value={stats.india_targeted ?? 0} />
-              <StatCard label="Safe Apps" value={stats.safe_count ?? 0} />
-              <StatCard label="PCAP Scans" value={stats.pcap_scans ?? 0} />
+              <StatCard label="Total Scans" value={dashboardStats.total_analyzed ?? 0} />
+              <StatCard label="Critical Threats" value={(dashboardStats.critical_count ?? 0) + (dashboardStats.high_count ?? 0)} pulseColor="#f43f5e" />
+              <StatCard label="India Targeted" value={dashboardStats.india_targeted ?? 0} />
+              <StatCard label="Safe Apps" value={dashboardStats.safe_count ?? 0} />
+              <StatCard label="PCAP Scans" value={dashboardStats.pcap_scans ?? 0} />
               <StatCard label="YARA Rules" value={50} />
             </div>
 
@@ -346,14 +326,34 @@ export default function DashboardPage() {
                   <div className="text-[0.65rem] font-mono text-muted uppercase tracking-widest mb-4 pb-2 border-b border-border">
                     Malware Families
                   </div>
-                  <DonutChart data={familyData} />
+                  <div className="space-y-3 pt-2">
+                    {Object.entries(familyData).filter(([, v]) => v > 0).length > 0 ? (
+                      Object.entries(familyData)
+                        .filter(([, v]) => v > 0)
+                        .sort(([, a], [, b]) => b - a)
+                        .map(([family, count]) => (
+                          <div key={family} className="flex items-center justify-between py-2 border-b border-border last:border-0">
+                            <div className="flex items-center gap-3">
+                              <div 
+                                className="w-2 h-2 rounded-none shrink-0" 
+                                style={{ background: FAMILY_COLORS[family] ?? "#555" }}
+                              />
+                              <span className="text-sm text-secondary font-mono">{family}</span>
+                            </div>
+                            <span className="text-sm text-secondary font-mono font-bold">{count}</span>
+                          </div>
+                        ))
+                    ) : (
+                      <p className="text-muted font-mono text-xs text-center py-6">[ NO DATA ]</p>
+                    )}
+                  </div>
                 </div>
                 
                 <div className="bg-surface-raised border border-border p-6 corner-brackets flex-1">
                   <div className="text-[0.65rem] font-mono text-muted uppercase tracking-widest mb-4 pb-2 border-b border-border">
                     Risk Distribution
                   </div>
-                  <RiskBars stats={stats} />
+                  <RiskBars stats={dashboardStats} />
                 </div>
               </div>
 
@@ -375,10 +375,6 @@ export default function DashboardPage() {
                 </div>
               </div>
             </div>
-          </div>
-        ) : (
-          <div className="text-center py-20 text-danger font-mono text-xs uppercase">
-            [ ERROR: TERMINAL OFFLINE ]
           </div>
         )}
       </div>
