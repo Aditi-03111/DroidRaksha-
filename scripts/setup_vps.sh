@@ -26,6 +26,19 @@ else
     echo "✅ Docker is already installed."
 fi
 
+# 2.5 Setup 8GB Swap File (Crucial for AWS EC2 instances with low RAM)
+if [ ! -f "/swapfile" ]; then
+    echo "💾 Creating 8GB Swap File to prevent Out-Of-Memory crashes..."
+    sudo fallocate -l 8G /swapfile
+    sudo chmod 600 /swapfile
+    sudo mkswap /swapfile
+    sudo swapon /swapfile
+    echo "/swapfile swap swap defaults 0 0" | sudo tee -a /etc/fstab
+    echo "✅ Swap file created and enabled."
+else
+    echo "✅ Swap file already exists."
+fi
+
 # 3. Setup Project Directory
 PROJECT_DIR="$HOME/DroidRaksha"
 if [ ! -d "$PROJECT_DIR" ]; then
@@ -50,7 +63,7 @@ if [ ! -f ".env" ]; then
     read -p "Enter VIRUSTOTAL_API_KEY: " VIRUSTOTAL_API_KEY
     read -p "Enter ABUSEIPDB_API_KEY: " ABUSEIPDB_API_KEY
 
-    read -p "Enter Supabase PostgreSQL URL: " DATABASE_URL
+    read -p "Enter AWS RDS PostgreSQL URL: " DATABASE_URL
     read -p "Enter Upstash Redis URL: " REDIS_URL
     read -p "Enter MongoDB Atlas URL: " MONGO_URI
 
