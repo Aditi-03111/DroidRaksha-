@@ -32,6 +32,7 @@ def analyze(apk_path: str) -> dict:
         "ips": [],
         "urls": [],
         "suspicious_strings": [],
+        "resolved_urls": [],
         "error": None,
     }
     try:
@@ -96,6 +97,14 @@ def _process_strings(strings: set[str]) -> dict:
                         "value": f"{b64[:40]}… → {decoded[:60]}",
                         "risk": "medium",
                     })
+                    # If decoded looks like a URL, capture it separately
+                    if decoded.lower().startswith("http://") or decoded.lower().startswith("https://"):
+                        resolved_urls.append({
+                            "type": "resolved_url",
+                            "original": b64,
+                            "decoded": decoded,
+                            "risk": "medium",
+                        })
             except Exception:
                 pass
 
@@ -111,6 +120,7 @@ def _process_strings(strings: set[str]) -> dict:
         "ips": deduped_ips[:30],
         "urls": urls[:30],
         "suspicious_strings": suspicious[:50],
+        "resolved_urls": resolved_urls[:30],
         "error": None,
     }
 

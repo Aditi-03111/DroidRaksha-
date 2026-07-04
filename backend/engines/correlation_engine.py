@@ -89,7 +89,15 @@ def correlate(
     mobsf = mobsf or {}
     threat_intel = threat_intel or {}
 
+    # Gather static URLs from both regular extracted URLs and resolved URLs from Base64 payloads
     static_urls = _string_values(strings, "urls")
+    # resolved_urls entries contain a 'decoded' field with the actual URL
+    resolved_static = []
+    for entry in strings.get("resolved_urls", []):
+        decoded = entry.get("decoded")
+        if decoded:
+            resolved_static.append(decoded)
+    static_urls.extend(resolved_static)
     static_ips = set(_string_values(strings, "ips"))
     static_domains = {_host(url) for url in static_urls if _host(url)}
     static_domains.update(_host(url) for url in (mobsf.get("urls") or []) if _host(url))
@@ -189,4 +197,5 @@ def correlate(
             "ips": len(runtime_ips),
         },
         "threat_intel": threat_intel,
+        "resolved_urls": resolved_static,
     }

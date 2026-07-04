@@ -30,6 +30,10 @@ RUN apt-get update && apt-get install -y \
     default-jre-headless \
     curl \
     unzip \
+    aapt \
+    apktool \
+    apksigner \
+    tshark \
     && rm -rf /var/lib/apt/lists/*
 
 # ── Set work directory ────────────────────────────────────────────────────────

@@ -46,7 +46,7 @@ def _cache_dir(apk_path: str) -> Path:
 
 def _is_cached(apk_path: str) -> bool:
     d = _cache_dir(apk_path)
-    return d.exists() and any(d.rglob("*.java"))
+    return d.exists() and (any(d.rglob("*.java")) or any(d.rglob("*.smali")))
 
 
 def _run_jadx(apk_path: str, output_dir: Path) -> tuple[bool, str]:
@@ -91,10 +91,33 @@ def _ensure_decompiled(apk_path: str) -> tuple[Path | None, str]:
 
     ok, err = _run_jadx(apk_path, out)
     if not ok:
-        logger.warning(f"jadx failed: {err}")
-        # Clean up partial output so next call retries
+        logger.warning(f"jadx failed: {err}, trying apktool fallback...")
         shutil.rmtree(out, ignore_errors=True)
-        return None, err
+        out.mkdir(parents=True, exist_ok=True)
+        
+        try:
+            # Run apktool to decompile to smali
+            result = subprocess.run(
+                ["apktool", "d", "-r", "-f", "-o", str(out), apk_path],
+                capture_output=True, text=True, timeout=120
+            )
+            if result.returncode != 0:
+                apk_err = result.stderr[:500] if result.stderr else "apktool exited non-zero"
+                logger.warning(f"apktool failed: {apk_err}")
+                shutil.rmtree(out, ignore_errors=True)
+                return None, f"jadx error: {err} | apktool error: {apk_err}"
+            
+            # apktool puts smali files in smali/ folder inside out directory
+            # For compatibility with frontend expecting a 'sources' dir:
+            smali_dir = out / "smali"
+            if smali_dir.exists():
+                smali_dir.rename(sources_dir)
+            else:
+                (out / "smali_classes2").rename(sources_dir) # fallback for multi-dex
+        except Exception as apk_e:
+            logger.warning(f"apktool fallback error: {apk_e}")
+            shutil.rmtree(out, ignore_errors=True)
+            return None, f"jadx error: {err} | apktool exception: {apk_e}"
 
     logger.info(f"jadx complete → {sources_dir}")
     return sources_dir, ""
@@ -120,7 +143,7 @@ def _build_tree(root: Path, base: Path) -> list[dict[str, Any]]:
             children = _build_tree(entry, base)
             if children:  # prune empty dirs
                 nodes.append({"name": entry.name, "path": rel, "type": "dir", "children": children})
-        elif entry.suffix == ".java":
+        elif entry.suffix in {".java", ".smali"}:
             nodes.append({"name": entry.name, "path": rel, "type": "file"})
 
     return nodes
@@ -142,7 +165,7 @@ def get_class_tree(apk_path: str) -> dict[str, Any]:
         return {"available": False, "tree": [], "error": err or "Decompilation produced no output"}
 
     tree = _build_tree(sources_dir, sources_dir)
-    total_files = sum(1 for _ in sources_dir.rglob("*.java"))
+    total_files = sum(1 for _ in sources_dir.rglob("*.java")) + sum(1 for _ in sources_dir.rglob("*.smali"))
 
     return {
         "available": True,
@@ -177,7 +200,7 @@ def get_class_source(apk_path: str, class_path: str) -> dict[str, Any]:
     except ValueError:
         return {"available": False, "class_path": class_path, "source": None, "error": "Invalid class path"}
 
-    if not target.exists() or not target.suffix == ".java":
+    if not target.exists() or target.suffix not in {".java", ".smali"}:
         return {"available": False, "class_path": class_path, "source": None, "error": "Class file not found"}
 
     try:

@@ -164,12 +164,83 @@ def analyze(apk_path: str) -> dict:
         result["receivers"] = list(a.get_receivers() or [])
         result["providers"] = list(a.get_providers() or [])
 
-    except ImportError:
-        logger.warning("androguard not installed — using mock manifest data")
-        result = _mock_manifest(apk_path)
     except Exception as e:
-        logger.error(f"Manifest parse error: {e}\n{traceback.format_exc()}")
-        result["error"] = str(e)
+        logger.warning(f"Androguard failed ({e}), falling back to aapt...")
+        try:
+            import subprocess
+            import re
+            proc = subprocess.run(["aapt", "dump", "badging", apk_path], capture_output=True, text=True, timeout=30)
+            if proc.returncode == 0:
+                out = proc.stdout
+                pkg_match = re.search(r"package: name='([^']+)' versionCode='([^']+)' versionName='([^']+)'", out)
+                if pkg_match:
+                    result["package_name"] = pkg_match.group(1)
+                    result["version_code"] = pkg_match.group(2)
+                    result["version_name"] = pkg_match.group(3)
+                sdk_match = re.search(r"sdkVersion:'([^']+)'", out)
+                if sdk_match: result["min_sdk"] = sdk_match.group(1)
+                target_match = re.search(r"targetSdkVersion:'([^']+)'", out)
+                if target_match: result["target_sdk"] = target_match.group(1)
+                
+                perms = set(re.findall(r"uses-permission: name='([^']+)'", out))
+                for perm in perms:
+                    is_dangerous = perm in DANGEROUS_PERMISSIONS
+                    result["permissions"].append({
+                        "name": perm,
+                        "is_dangerous": is_dangerous,
+                        "description": DANGEROUS_PERMISSIONS.get(perm, ""),
+                    })
+                for combo in DANGEROUS_COMBOS:
+                    if all(p in perms for p in combo["permissions"]):
+                        result["dangerous_combos"].append(combo)
+                logger.info("Successfully parsed manifest using aapt.")
+                return result
+        except Exception as aapt_e:
+            logger.warning(f"aapt fallback failed: {aapt_e}. Falling back to apktool...")
+
+        try:
+            import subprocess
+            import tempfile
+            import os
+            from xml.etree import ElementTree as ET
+            with tempfile.TemporaryDirectory() as tmpdir:
+                subprocess.run(["apktool", "d", "--no-src", "-f", "-o", tmpdir, apk_path], capture_output=True, timeout=60)
+                manifest_path = os.path.join(tmpdir, "AndroidManifest.xml")
+                if os.path.exists(manifest_path):
+                    tree = ET.parse(manifest_path)
+                    root = tree.getroot()
+                    result["package_name"] = root.get("package", "unknown")
+                    ns = {"android": "http://schemas.android.com/apk/res/android"}
+                    result["version_code"] = root.get(f"{{{ns['android']}}}versionCode", "0")
+                    result["version_name"] = root.get(f"{{{ns['android']}}}versionName", "unknown")
+                    
+                    uses_sdk = root.find("uses-sdk")
+                    if uses_sdk is not None:
+                        result["min_sdk"] = uses_sdk.get(f"{{{ns['android']}}}minSdkVersion", "unknown")
+                        result["target_sdk"] = uses_sdk.get(f"{{{ns['android']}}}targetSdkVersion", "unknown")
+                    
+                    perms = set()
+                    for perm_node in root.findall("uses-permission"):
+                        p = perm_node.get(f"{{{ns['android']}}}name")
+                        if p: perms.add(p)
+                    for perm in perms:
+                        is_dangerous = perm in DANGEROUS_PERMISSIONS
+                        result["permissions"].append({
+                            "name": perm,
+                            "is_dangerous": is_dangerous,
+                            "description": DANGEROUS_PERMISSIONS.get(perm, ""),
+                        })
+                    for combo in DANGEROUS_COMBOS:
+                        if all(p in perms for p in combo["permissions"]):
+                            result["dangerous_combos"].append(combo)
+                    logger.info("Successfully parsed manifest using apktool.")
+                    return result
+        except Exception as apktool_e:
+            logger.warning(f"apktool fallback failed: {apktool_e}")
+
+        logger.error(f"All manifest parsers failed. Returning mock data. Original error: {e}")
+        result = _mock_manifest(apk_path)
+        result["error"] = "All manifest parsing tools (androguard, aapt, apktool) failed."
 
     return result
 

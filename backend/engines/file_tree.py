@@ -147,9 +147,24 @@ def get_manifest_xml(apk_path: str) -> dict:
                 xml_str = str(xml_bytes)
             return {"xml_string": xml_str, "error": None}
         except Exception as ag_err:
-            logger.warning(f"Androguard manifest decode failed: {ag_err}, trying raw extract")
+            logger.warning(f"Androguard manifest decode failed: {ag_err}, trying apktool fallback...")
 
-        # Fallback: extract raw binary XML and try to decode
+        # Fallback 1: apktool
+        try:
+            import subprocess
+            import tempfile
+            with tempfile.TemporaryDirectory() as tmpdir:
+                subprocess.run(["apktool", "d", "--no-src", "-f", "-o", tmpdir, apk_path], capture_output=True, timeout=60)
+                manifest_path = os.path.join(tmpdir, "AndroidManifest.xml")
+                if os.path.exists(manifest_path):
+                    with open(manifest_path, "r", encoding="utf-8", errors="replace") as f:
+                        xml_str = f.read()
+                    logger.info("Successfully extracted manifest using apktool.")
+                    return {"xml_string": xml_str, "error": None}
+        except Exception as apktool_err:
+            logger.warning(f"apktool fallback failed: {apktool_err}, trying raw extract...")
+
+        # Fallback 2: extract raw binary XML and try to decode (zipfile)
         with zipfile.ZipFile(apk_path, "r") as zf:
             if "AndroidManifest.xml" not in zf.namelist():
                 return {"xml_string": None, "error": "AndroidManifest.xml not found in APK"}
@@ -162,7 +177,7 @@ def get_manifest_xml(apk_path: str) -> dict:
         # Binary AXML — return hex fallback notice
         return {
             "xml_string": None,
-            "error": "Binary XML — install androguard for full decode: pip install androguard",
+            "error": "Binary XML — install androguard or apktool for full decode",
         }
 
     except Exception as e:

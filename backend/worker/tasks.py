@@ -195,7 +195,7 @@ def run_analysis_task(self, apk_path: str, filename: str, job_id: str) -> dict:
 
         # ── Stage 18: Correlation Engine ─────────────────────────────────
         _publish(job_id, {"stage": "correlation", "pct": 99, "msg": "Correlating static and dynamic indicators..."})
-        from backend.engines import correlation_engine, dga_detector
+        from backend.engines import correlation_engine, dga_detector, investigator
         correlation = correlation_engine.correlate(
             manifest=manifest,
             strings=strings,
@@ -206,6 +206,10 @@ def run_analysis_task(self, apk_path: str, filename: str, job_id: str) -> dict:
             threat_intel={"virustotal": vt, "abuseipdb": abuse, "asn": asn, "otx": otx_result},
         )
         dga_static = dga_detector.analyze_domains(domains)
+
+        # ── Stage 19: Investigative Evidence Report ────────────────────────────────
+        _publish(job_id, {"stage": "evidence", "pct": 99, "msg": "Generating investigative evidence report..."})
+        evidence_report = investigator.analyze(apk_path, manifest, strings)
 
         # Use agent court narrative as primary AI narrative
         ai_text = agent_verdict.get("court_narrative", "")
@@ -251,6 +255,8 @@ def run_analysis_task(self, apk_path: str, filename: str, job_id: str) -> dict:
             "dynamic": sandbox_result,
             "mobsf": mobsf_result,
             "correlation": correlation,
+            # ── Investigative Evidence Report ───────────────────────────────
+            "evidence_report": evidence_report,
         }
 
         # ── Save to DB (99%) ──────────────────────────────────────────────

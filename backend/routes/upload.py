@@ -141,37 +141,44 @@ async def upload_pcap(
 
     Returns: { pcap_id, status, network: <PCAPResult> }
     """
+    # NOTE: FastAPI requires the `python-multipart` package to parse
+    # multipart/form-data. Ensure it is installed in the environment.
     if not file.filename:
         raise HTTPException(status_code=400, detail="No filename provided")
 
-    data = await file.read()
+    # Validate file type using magic bytes from the first chunk
+    header = await file.read(4)
+    await file.seek(0)
+    if not _is_pcap(file.filename, header):
+        raise HTTPException(status_code=400, detail="Invalid file type")
 
-    if len(data) > MAX_PCAP_SIZE:
-        raise HTTPException(status_code=413, detail="PCAP too large (max 200MB)")
-
-    if not _is_pcap(file.filename, data):
-        raise HTTPException(
-            status_code=400,
-            detail="Invalid file — only .pcap / .pcapng files accepted",
-        )
-
-    # ── Save PCAP ────────────────────────────────────────────────────────────
-    pcap_id   = str(uuid.uuid4())
+    # Stream upload to file to avoid loading large PCAPs into memory.
+    pcap_id = str(uuid.uuid4())
     pcap_path = os.path.join(UPLOAD_DIR, "pcaps", f"{pcap_id}.pcap")
     with open(pcap_path, "wb") as f_out:
-        f_out.write(data)
-    logger.info(f"Saved PCAP → {pcap_path} ({len(data):,} bytes)")
+        while True:
+            chunk = await file.read(1024 * 1024)  # 1 MiB chunks
+            if not chunk:
+                break
+            f_out.write(chunk)
+    await file.close()
+
+    # Enforce size limit after write (covers missing Content-Length).
+    size = os.path.getsize(pcap_path)
+    if size > MAX_PCAP_SIZE:
+        os.remove(pcap_path)
+        raise HTTPException(status_code=413, detail="PCAP too large (max 200MB)")
+
+    logger.info(f"Saved PCAP → {pcap_path} ({size:,} bytes)")
 
     # Upload to S3/R2 if configured
     from backend.storage.s3 import upload_file as s3_upload
     await s3_upload(pcap_path, f"pcaps/{pcap_id}.pcap")
 
-    # ── Run PCAP analysis (sync — fast enough for ≤200MB) ───────────────────
+    # Run PCAP analysis synchronously – fast enough for ≤200 MB
     from backend.engines import pcap_analyzer
-
-    # If linked to an APK scan, pass its India IOC data for cross-referencing
     india_ioc_data = None
-    linked_result  = None
+    linked_result = None
     if analysis_id:
         linked_result = await database.get_analysis(analysis_id)
         if linked_result:
@@ -179,7 +186,7 @@ async def upload_pcap(
 
     network = pcap_analyzer.analyze(pcap_path, india_ioc_data=india_ioc_data)
 
-    # ── Patch the linked APK result with network data ────────────────────────
+    # Patch the linked APK result with network data if requested
     if linked_result and network.get("available"):
         linked_result["network"] = network
         linked_result["pcap_id"] = pcap_id
